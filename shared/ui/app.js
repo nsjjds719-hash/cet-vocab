@@ -366,7 +366,8 @@
 
   // 首页统计卡的轮次与计数；设置页预览共用，保证与真实进度一致。
   function statsMeter(book, data) {
-    const firstPassCompleted = rules.firstPassCount(data.core, book.entries);
+    // 「已读」按读过学习卡计数，不必等本组默写完；进入第二轮仍以默写完成为准。
+    const firstPassCompleted = rules.readCount(data.core, book.entries);
     const hasNew = firstPassCompleted < data.core.length;
     let meter;
     if (book.pass === 1) {

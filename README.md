@@ -2,7 +2,7 @@
 
 大学英语四级、六级背单词软件，有 **Android** 和 **Windows** 两个版本。先学一组新词，再打乱顺序默写，记不牢的放进生词本，按自己的节奏复习。全程离线，不用注册，学习记录只存在自己的设备上。
 
-当前版本：**0.1.7**
+当前版本：**0.1.8**
 
 ## 下载
 
@@ -10,8 +10,8 @@
 
 | 平台 | 文件 | 要求 |
 |---|---|---|
-| Android | `cijian-0.1.7.apk` | Android 8.0 及以上 |
-| Windows | `Cijian-Windows-x64-0.1.7.zip` | Windows 10 / 11 64 位（x64），需 WebView2 |
+| Android | `cijian-0.1.8.apk` | Android 8.0 及以上 |
+| Windows | `Cijian-Windows-x64-0.1.8.zip` | Windows 10 / 11 64 位（x64），需 WebView2 |
 
 安装方法、使用方法和常见问题见 **[使用说明.txt](使用说明.txt)**。Windows 压缩包里也附带了这份说明。
 
@@ -65,7 +65,7 @@ python scripts\build_ports.py windows
 ## 测试
 
 ```powershell
-python tests\verify_catalog.py 0.1.7
+python tests\verify_catalog.py 0.1.8
 ```
 
 校验词库覆盖考试大纲，并核对 APK 与 Windows 包里的词库、词典和源数据完全一致。`tests\StudyRulesTest.java` 是学习规则的回归测试（周末开关、零点配额、到期顺延、复习排序、五轮上限、拼写判定等）。

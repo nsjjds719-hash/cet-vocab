@@ -104,6 +104,11 @@
     return catalog.filter(word => entries[word]?.firstPass != null).length;
   }
 
+  // 首轮已读：读过学习卡（或已完成首轮默写）的词数。
+  function readCount(catalog, entries) {
+    return catalog.filter(word => entries[word]?.viewed != null || entries[word]?.firstPass != null).length;
+  }
+
   function reconcile(book, catalog) {
     if (book.pass === 1 && firstPassCount(catalog, book.entries) === catalog.length) {
       book.pass = 2;
@@ -177,6 +182,6 @@
   }
 
   root.CijianRules = { freshState, normalize, answersMatch, localDay, weekend, allowsNew, viewedToday,
-    newWords, progress, mark, needsReview, priority, reviewedInPass, oldWords, firstPassCount,
+    newWords, progress, mark, needsReview, priority, reviewedInPass, oldWords, firstPassCount, readCount,
     reconcile, endPass, createSession, beginTest, complete, finishQuestion, starred, setStar, liveRound };
 })(globalThis);

@@ -88,6 +88,18 @@ final class StudyPlanner {
         return finished;
     }
 
+    /** 首轮已读：读过学习卡（或已完成首轮默写）的词数。 */
+    static int readCount(List<String> catalog, Map<String, Progress> entries) {
+        int read = 0;
+        for (String key : catalog) {
+            Progress entry = entries.get(key);
+            if (entry != null && (entry.viewed != NEVER || entry.firstPass != NEVER)) {
+                read++;
+            }
+        }
+        return read;
+    }
+
     static List<String> newWords(List<String> catalog, Map<String, Progress> entries,
                                  long day, int quota, boolean learnOnWeekends) {
         List<String> result = new ArrayList<>();

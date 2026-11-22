@@ -969,7 +969,8 @@ public final class MainActivity extends Activity {
     private LinearLayout statsCard(StudyStore.Stage stage, Map<String, StudyPlanner.Progress> progress,
                                    String label) {
         List<String> words = vocabulary.words(book);
-        int complete = StudyPlanner.firstPassCount(words, progress);
+        // 「已读」按读过学习卡计数，不必等本组默写完；进入第二轮仍以默写完成为准。
+        int complete = StudyPlanner.readCount(words, progress);
         boolean hasNewWords = complete < words.size();
         LinearLayout hero = view.ink(book == WordBook.CET4 ? "IV" : "VI");
         view.add(hero, view.tag(label, GOLD), 0);
