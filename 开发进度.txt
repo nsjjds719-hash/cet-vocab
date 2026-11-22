@@ -1,0 +1,41 @@
+词间开发进度
+项目目录 D:\ENGLISH
+当前版本 0.1.3，Android 8.0 及以上
+本地试用包 D:\ENGLISH\build\cijian-0.1.3.apk
+
+Windows 和 iOS
+
+- Windows x64 便携版 D:\ENGLISH\build\Cijian-Windows-x64-0.1.3.zip。完整解压后打开 Cijian.exe，使用 Microsoft Edge WebView2 Runtime。
+- iOS 工程包 D:\ENGLISH\build\Cijian-iOS-Xcode-0.1.3.zip。工程最低 iOS 16，包含 Swift、系统语音和离线资源，可在 Mac 上用 Xcode 打开。尚未完成 iOS 原生编译、签名或真机验证。
+- Android、Windows、iOS 工程随包提供同一份标准化词库。学习进度各自保存在本机。
+- Windows 实机已打开打包后的程序，核对周末新词入口和考前榜显示。共享界面通过了桌面及窄屏的先学后默写、暂停续做、高频词加入复习和自选复习测试。已检查 iOS 工程的资源归属和压缩包完整性。
+- 运行 python scripts\build_ports.py windows 或 python scripts\build_ports.py ios 可重建对应产物。Windows 构建用 .NET 10 SDK。iOS 工程包用 Pillow 生成应用图标。
+
+已实现
+
+- 首页词典支持离线中英互查。索引同时包含四级、六级、两份考前榜、补入的大纲词头和数据中保存的词形及同源词。搜索不到时显示「无结果」。
+- 英文词形和同源词可以查到所属词族。点击搜索结果跳转到详情，同形词可分别展示所属词族。
+- 搜索记录保留最近 20 次去重查询。退出有结果的查询时，用户可将选中的词加入当前词书的待复习库。词形也可以单独加入复习。
+- 四级 4,951 个可学习词条，新增或纳入正式学习 1,212 个。六级 6,148 个可学习词条，新增或纳入 4,070 个，涵盖四级大纲基础和六级星标词头。保留原四级 3,739 个、原六级 2,078 个单词键和首轮顺序。
+- 先看释义、词性、发音和词形，随后打乱次序。可选择看中文默写或听音默写。学习卡和答题后都可以标记已学会或加入复习。系统语音优先使用手机上可用的离线英语语音。
+- 手机当地日期零点刷新。默认每天 35 个新词，数量可调。待复习词从次日零点起到期，漏做的复习顺延。
+- 首页的「周末学新词」开关默认开启。关掉后周六、周日只发放复习任务。周末可以按需选择旧词，待复习词优先，完成后可以继续选词。
+- 四级、六级分别计算周目。第一周目练完自动进入第二周目。第二至第五周目优先展示待复习和上一周目不熟的词，数量由用户自选，每一轮由用户主动结束。已进入后续周目的用户可以通过首页「补学新词」学习扩充的词条。
+- 考前模式随时可打开。四级、六级各列频次榜前 1,500 个英文词。点击不熟会立即加入同一待复习库，并在次日纳入日常到期复习。考前练习和普通练习可以分别暂停续做。
+
+构建与验证
+
+- 运行 D:\ENGLISH\build.ps1。使用 JDK 21、Android Platform 36 及 Build Tools 36.0.0。可通过 SdkRoot 参数指定 SDK 目录，默认为本机 Android SDK 路径。APK 使用本地调试证书签名。
+- APK 已通过签名校验，应用标识和 0.1.0 的签名证书相同。tests\StudyRulesTest.java 的回归检查已通过，覆盖周末开关与零点配额、到期顺延、复习排序、少量和多量自选、五周目上限、拼写判定、练习状态序列化，以及 APK 中两本完整词书和两份高频榜。
+- 本机未连接 Android 设备。真机界面、键盘与系统发音尚待确认。
+- python tests\verify_catalog.py 0.1.3 验证三端使用相同的词库和词族数据。词库 SHA-256 为 c01517a76a24d38f2e82f4222f49df937b85658fe7186120b1e2d17ca1c8afa2，不含文件尾换行。
+- 回归检查通过英语查释义、中文反查、词形和同源词、同形词族分离、无结果和变形词加入待复习。桌面与窄屏浏览器测试在断网模式下验证了详情跳转、历史续读和退出确认。
+
+词库来源
+
+- 基础词书来自 kajweb/dict，提交 3992bcb94c800a2fd38a9fd6ff95b2353e755363。原始数据保存在 data\wordbooks。
+- 补库依据教育部教育考试院公布的 2016 年修订版大纲。抽取 5,377 行首列词目，其中 1,263 行带星。合并同形词及拼写变体后核对 5,288 个词头组，其中 4,031 个含非星标词目。原 PDF 页脚另印 5,418 和 2,551，印刷数与本次抽取单位及计数有差异。原页码、抽取词头及判定的拼写保存在 data\wordbooks\cet-outline-2016.json。来源 https://www.neea.edu.cn/res/Home/1704/55b02330ac17274664f06d9d3db8249d.pdf
+- 高频榜来自 https://english-exam.lazynote.cn/cet4/words/stats/frequency/ 和 https://english-exam.lazynote.cn/cet6/words/stats/frequency/。提取时校验排名连续、频次降序、每榜 1,500 个不同词。
+- 语法词形及高频补充词释义来自 ECDICT，提交 39cfb9672c0906b63569e0453c2e6abfb9ab182a。脚本含五条补充释义，生成数据带 ECDICT 许可。可用 scripts\prepare_data.py 重新生成 data\study，查看脚本的 --help 获取所需输入。
+- 运行 python scripts\prepare_catalog.py --dictionary 后接上述版本的 ECDICT CSV 路径，从两本原词书、大纲和补充释义重新生成三端共用的 data\study\catalog.json。
+- 重建词库后执行 python scripts\prepare_dictionary.py，生成离线词典和词族关系。当前索引共有 26,965 个词条或词形、5,122 个词族。

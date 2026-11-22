@@ -1,0 +1,10 @@
+/build/
+/.gradle/
+/.idea/
+/local.properties
+*.iml
+/windows/bin/
+/windows/obj/
+xcuserdata/
+__pycache__/
+

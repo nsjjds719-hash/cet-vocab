@@ -1,0 +1,106 @@
+:root {
+  color-scheme: light;
+  --paper: #f8f6ef;
+  --card: #fffdfa;
+  --ink: #182e26;
+  --muted: #54665b;
+  --green: #264b3c;
+  --soft: #e7eee3;
+  --line: #d7ded3;
+  --gold: #f3cb87;
+  --warning: #75461d;
+  font-family: system-ui, "Microsoft YaHei UI", "PingFang SC", sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+button, input { font: inherit; }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button {
+  min-height: 44px;
+  border-radius: 13px;
+  padding: .61rem .88rem;
+  color: var(--green);
+  background: var(--card);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  font-weight: 650;
+}
+button:hover:not(:disabled) { border-color: #789483; }
+button:disabled { cursor: default; opacity: .62; }
+:focus-visible { outline: 3px solid #947031; outline-offset: 3px; }
+.primary { color: white; background: var(--green); border-color: var(--green); }
+.quiet { background: transparent; border-color: transparent; }
+.gold { color: var(--ink); background: var(--gold); border-color: var(--gold); }
+input:not([type=checkbox]) {
+  display: block;
+  width: 100%;
+  min-height: 47px;
+  padding: .7rem .85rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 16px;
+}
+input[type=checkbox] { width: 1.15rem; height: 1.15rem; accent-color: var(--green); }
+#app {
+  width: min(100%, 1040px);
+  margin: auto;
+  padding: max(1.5rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
+}
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(1.85rem, 5.5vw, 2.75rem); line-height: 1.15; }
+h2 { font-size: 1.38rem; }
+h3 { font-size: 1rem; }
+p { line-height: 1.55; }
+.muted { color: var(--muted); }
+.warning { color: var(--warning); }
+.small { font-size: .87rem; }
+.row { display: flex; align-items: center; gap: .7rem; }
+.dictionary-search input { min-width: 0; }
+.dictionary-search button { flex: none; }
+.dictionary-family { display: flex; flex-wrap: wrap; gap: .45rem; }
+.between { justify-content: space-between; }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+.stack > * + * { margin-top: .72rem; }
+.card { padding: 1.15rem; border-radius: 21px; background: var(--card); border: 1px solid var(--line); }
+.hero { color: #fffdfa; background: var(--green); border-color: var(--green); }
+.hero .muted { color: #e5ece2; }
+.hero .tag { color: var(--gold); }
+.hero h2 { font-size: 1.9rem; }
+.tag { font-size: .83rem; letter-spacing: .1em; font-weight: 700; }
+.dashboard { display: grid; gap: 1rem; }
+.control { display: flex; align-items: center; gap: .65rem; min-height: 44px; cursor: pointer; }
+.bar { width: 100%; height: .45rem; accent-color: #b38341; }
+.hero .bar { accent-color: var(--gold); }
+.learn-title {
+  font: 700 clamp(2.1rem, 9vw, 3.55rem)/1.12 Georgia, "Times New Roman", serif;
+  overflow-wrap: anywhere;
+}
+.terms { white-space: pre-line; overflow-wrap: anywhere; line-height: 1.63; }
+.narrow { max-width: 630px; margin-inline: auto; }
+.success { background: var(--soft); border-color: var(--line); }
+.retry { background: #f8edda; border-color: #eadbc1; }
+.actions > button { width: 100%; }
+.word-row { min-height: 52px; padding: .2rem .45rem .2rem .75rem; border-radius: 9px; }
+.word-row:nth-of-type(odd) { background: var(--card); }
+.word-row .control { flex: 1; min-width: 0; }
+.word-row strong { overflow-wrap: anywhere; }
+.word-row small { text-align: right; }
+.pager { margin-top: .6rem; }
+.audio { display: grid; justify-items: start; gap: .3rem; }
+.audio .message:empty { display: none; }
+dialog { width: min(440px, calc(100% - 2rem)); padding: 1.25rem; border: 1px solid var(--line);
+  border-radius: 19px; color: var(--ink); background: var(--card); }
+dialog::backdrop { background: rgb(24 46 38 / 42%); }
+#notice:not(:empty) { max-width: 640px; margin: 1rem auto 0; padding: .65rem 1rem;
+  color: var(--warning); background: #f8edda; border-radius: 11px; }
+@media (min-width: 730px) {
+  #app { padding: 2.3rem 2.6rem; }
+  .dashboard { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: start; gap: 1.5rem; }
+  .dashboard .hero { padding: 1.55rem; }
+}

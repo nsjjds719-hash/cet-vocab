@@ -1,0 +1,123 @@
+// !$*UTF8*$!
+{
+    archiveVersion = 1;
+    classes = {};
+    objectVersion = 56;
+    objects = {
+        A11200000000000000000001 = {isa = PBXBuildFile; fileRef = A11200000000000000000004; };
+        A11200000000000000000002 = {isa = PBXBuildFile; fileRef = A11200000000000000000005; };
+        A11200000000000000000003 = {isa = PBXBuildFile; fileRef = A11200000000000000000006; };
+        A11200000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CijianApp.swift; sourceTree = "<group>"; };
+        A11200000000000000000005 = {isa = PBXFileReference; lastKnownFileType = folder; path = web; sourceTree = "<group>"; };
+        A11200000000000000000006 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+        A11200000000000000000007 = {isa = PBXFileReference; explicitFileType = wrapper.application; path = Cijian.app; sourceTree = BUILT_PRODUCTS_DIR; };
+        A11200000000000000000008 = {
+            isa = PBXGroup;
+            children = (A11200000000000000000004, A11200000000000000000005, A11200000000000000000006, A11200000000000000000009,);
+            sourceTree = "<group>";
+        };
+        A11200000000000000000009 = {
+            isa = PBXGroup;
+            children = (A11200000000000000000007,);
+            name = Products;
+            sourceTree = "<group>";
+        };
+        A1120000000000000000000A = {
+            isa = PBXSourcesBuildPhase;
+            buildActionMask = 2147483647;
+            files = (A11200000000000000000001,);
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        A1120000000000000000000B = {
+            isa = PBXResourcesBuildPhase;
+            buildActionMask = 2147483647;
+            files = (A11200000000000000000002, A11200000000000000000003,);
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        A1120000000000000000000C = {
+            isa = PBXFrameworksBuildPhase;
+            buildActionMask = 2147483647;
+            files = ();
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        A1120000000000000000000D = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = A11200000000000000000010;
+            buildPhases = (A1120000000000000000000A, A1120000000000000000000C, A1120000000000000000000B,);
+            buildRules = ();
+            dependencies = ();
+            name = Cijian;
+            productName = Cijian;
+            productReference = A11200000000000000000007;
+            productType = "com.apple.product-type.application";
+        };
+        A1120000000000000000000E = {
+            isa = PBXProject;
+            attributes = {LastUpgradeCheck = 1600; TargetAttributes = {A1120000000000000000000D = {CreatedOnToolsVersion = 16.0; }; }; };
+            buildConfigurationList = A1120000000000000000000F;
+            compatibilityVersion = "Xcode 14.0";
+            developmentRegion = en;
+            hasScannedForEncodings = 0;
+            knownRegions = (en, Base, "zh-Hans",);
+            mainGroup = A11200000000000000000008;
+            productRefGroup = A11200000000000000000009;
+            projectDirPath = "";
+            projectRoot = "";
+            targets = (A1120000000000000000000D,);
+        };
+        A1120000000000000000000F = {
+            isa = XCConfigurationList;
+            buildConfigurations = (A11200000000000000000011, A11200000000000000000012,);
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+        };
+        A11200000000000000000010 = {
+            isa = XCConfigurationList;
+            buildConfigurations = (A11200000000000000000013, A11200000000000000000014,);
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+        };
+        A11200000000000000000011 = {isa = XCBuildConfiguration; name = Debug; buildSettings = {SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 16.0; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; DEBUG_INFORMATION_FORMAT = dwarf; }; };
+        A11200000000000000000012 = {isa = XCBuildConfiguration; name = Release; buildSettings = {SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 16.0; SWIFT_COMPILATION_MODE = wholemodule; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; }; };
+        A11200000000000000000013 = {
+            isa = XCBuildConfiguration;
+            name = Debug;
+            buildSettings = {
+                ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                CODE_SIGN_STYLE = Automatic;
+                CURRENT_PROJECT_VERSION = 3;
+                ENABLE_PREVIEWS = YES;
+                GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_KEY_CFBundleDisplayName = "词间";
+                INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+                INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+                MARKETING_VERSION = 0.1.3;
+                PRODUCT_BUNDLE_IDENTIFIER = com.cikelab.spelling.ios;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+            };
+        };
+        A11200000000000000000014 = {
+            isa = XCBuildConfiguration;
+            name = Release;
+            buildSettings = {
+                ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                CODE_SIGN_STYLE = Automatic;
+                CURRENT_PROJECT_VERSION = 3;
+                GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_KEY_CFBundleDisplayName = "词间";
+                INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+                INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+                MARKETING_VERSION = 0.1.3;
+                PRODUCT_BUNDLE_IDENTIFIER = com.cikelab.spelling.ios;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+            };
+        };
+    };
+    rootObject = A1120000000000000000000E;
+}
