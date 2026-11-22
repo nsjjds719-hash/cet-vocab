@@ -1449,15 +1449,14 @@ public final class MainActivity extends Activity {
         wordCard(word, wordKey);
         StudyPlanner.Progress saved = store.progress(book).get(wordKey);
         StudyPlanner.Status current = saved == null ? UNMARKED : saved.status;
-        int pass = store.stage(book).pass;
         view.pair(view.body, view.button(current == MASTERED ? "✓ 已熟记" : "熟记",
                         current == MASTERED ? INK_FILL : SECONDARY, () -> {
-                            store.mark(book, wordKey, MASTERED, today(), pass);
+                            store.review(book, wordKey, MASTERED, today());
                             wordPage();
                         }),
                 view.button(current == REVIEW ? "✓ 待复习" : "待复习",
                         current == REVIEW ? INK_FILL : SECONDARY, () -> {
-                            store.mark(book, wordKey, REVIEW, today(), pass);
+                            store.review(book, wordKey, REVIEW, today());
                             wordPage();
                         }), 14);
         if (current == REVIEW) {
@@ -2071,7 +2070,11 @@ public final class MainActivity extends Activity {
                 String checkedLabel = action == MASTERED ? "✓ 已熟记" : "✓ 已收录";
                 boolean marked = progress.containsKey(key) && progress.get(key).status == action;
                 Button button = view.button(marked ? checkedLabel : actionLabel, TEXT, () -> {
-                    store.mark(book, key, action, today(), pass);
+                    if (screen == Screen.MASTERED_WORDS || screen == Screen.REVIEW_WORDS) {
+                        store.review(book, key, action, today());
+                    } else {
+                        store.mark(book, key, action, today(), pass);
+                    }
                     StudyPlanner.Progress status = new StudyPlanner.Progress();
                     status.status = action;
                     progress.put(key, status);

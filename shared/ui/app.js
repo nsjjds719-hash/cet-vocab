@@ -1008,6 +1008,7 @@
       case "mark-list": {
         const status = route === "records" && list.kind === "review" ? "mastered" : "review";
         rules.mark(book, value, status, day);
+        if (route === "records") rules.touch(book, value);
         if (route === "records") list.source = list.source.filter(key => key !== value);
         persist();
         showRows();
@@ -1056,6 +1057,7 @@
       case "word-mark": {
         const split = value.lastIndexOf("|");
         rules.mark(book, value.slice(0, split), value.slice(split + 1), day);
+        rules.touch(book, value.slice(0, split));
         persist();
         const y = window.scrollY;
         wordPage(value.slice(0, split));

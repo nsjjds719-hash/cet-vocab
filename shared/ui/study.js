@@ -77,6 +77,14 @@
     entry.status = status;
   }
 
+  // 第二至第五轮里在学习页或已熟记/待复习列表标记，也算本轮已复习。
+  function touch(book, word) {
+    if (book.pass > 1 && !book.finished) {
+      const entry = progress(book, word);
+      entry.reviewed = (entry.reviewed || 0) | bit(book.pass);
+    }
+  }
+
   function needsReview(entries, day, includeFuture) {
     return Object.keys(entries).filter(key => entries[key].status === "review"
       && (includeFuture || entries[key].due <= day))
@@ -182,6 +190,6 @@
   }
 
   root.CijianRules = { freshState, normalize, answersMatch, localDay, weekend, allowsNew, viewedToday,
-    newWords, progress, mark, needsReview, priority, reviewedInPass, oldWords, firstPassCount, readCount,
+    newWords, progress, mark, touch, needsReview, priority, reviewedInPass, oldWords, firstPassCount, readCount,
     reconcile, endPass, createSession, beginTest, complete, finishQuestion, starred, setStar, liveRound };
 })(globalThis);

@@ -95,6 +95,17 @@ final class StudyStore extends SQLiteOpenHelper {
         write(book, word, entry);
     }
 
+    /** 第二至第五轮里在学习页或已熟记/待复习列表标记，也算本轮已复习。 */
+    void review(WordBook book, String word, StudyPlanner.Status status, long day) {
+        Stage stage = stage(book);
+        StudyPlanner.Progress entry = entry(book, word);
+        StudyPlanner.mark(entry, status, day, stage.pass, false);
+        if (stage.pass > 1 && !stage.finished) {
+            entry.reviewedPasses |= StudyPlanner.bit(stage.pass);
+        }
+        write(book, word, entry);
+    }
+
     void finishQuestion(StudySession session, String word, StudyPlanner.Status status, long day) {
         SQLiteDatabase db = getWritableDatabase();
         db.beginTransaction();
