@@ -314,8 +314,7 @@
           <p class="muted small">卡片和按键玻璃的透明程度，越浓越不透。</p></section>`;
     } else if (id === "home") {
       const preview = `<section class="card hero preview-hero stack" data-mark="${state.book === "cet4" ? "IV" : "VI"}">
-          <p class="tag">预览</p><div class="pass-row">${badge(3, false)}<div><p class="muted caption">首轮已读</p>
-          <p class="figure">1268<small> / 4544</small></p></div></div></section>`;
+          <p class="tag">预览</p>${statsMeter(...previewSelection())}</section>`;
       body = `${preview}<section class="card stack"><h2>数字字体</h2>
           ${choices("numeral", () => '<span class="sample digits">128</span>', value => "on-ink numeral-" + value)}
           <p class="muted small">首页统计数字和轮次徽章里的数字。</p></section>
@@ -359,6 +358,31 @@
     return [state.books[state.book], vocab.books[state.book]];
   }
 
+  function previewSelection() {
+    const [book, data] = selection();
+    if (rules.reconcile(book, data.core)) persist();
+    return [book, data];
+  }
+
+  // 首页统计卡的轮次与计数；设置页预览共用，保证与真实进度一致。
+  function statsMeter(book, data) {
+    const firstPassCompleted = rules.firstPassCount(data.core, book.entries);
+    const hasNew = firstPassCompleted < data.core.length;
+    let meter;
+    if (book.pass === 1) {
+      meter = `<div class="pass-row">${badge(1, false)}<div><p class="muted caption">首轮已读</p>
+          <p class="figure">${firstPassCompleted}<small> / ${data.core.length}</small></p></div></div>
+        <progress class="bar" value="${firstPassCompleted}" max="${data.core.length}" aria-label="首轮完成进度"></progress>`;
+    } else {
+      const count = Object.values(book.entries).filter(entry => rules.reviewedInPass(entry, book.pass)).length;
+      meter = `<div class="pass-row">${badge(book.pass, book.finished)}<div>
+          <p class="muted caption">${book.finished ? "五轮圆满 · 已复习" : "本轮已复习"}</p>
+          <p class="figure">${count}<small> 词</small></p></div></div>`;
+      if (hasNew) meter += `<p class="muted small">尚余 ${data.core.length - firstPassCompleted} 词待补读</p>`;
+    }
+    return meter;
+  }
+
   function home() {
     const [book, data] = selection();
     if (rules.reconcile(book, data.core)) persist();
@@ -374,18 +398,7 @@
     const fire = emoji("newEmoji");
     const description = formatDay.format(new Date())
       + (weekend ? (canLearn ? " · 周末" + (fire || "新词") : " · 周末复习") : fire ? " · " + fire : "");
-    let meter;
-    if (book.pass === 1) {
-      meter = `<div class="pass-row">${badge(1, false)}<div><p class="muted caption">首轮已读</p>
-          <p class="figure">${firstPassCompleted}<small> / ${data.core.length}</small></p></div></div>
-        <progress class="bar" value="${firstPassCompleted}" max="${data.core.length}" aria-label="首轮完成进度"></progress>`;
-    } else {
-      const count = Object.values(book.entries).filter(entry => rules.reviewedInPass(entry, book.pass)).length;
-      meter = `<div class="pass-row">${badge(book.pass, book.finished)}<div>
-          <p class="muted caption">${book.finished ? "五轮圆满 · 已复习" : "本轮已复习"}</p>
-          <p class="figure">${count}<small> 词</small></p></div></div>`;
-      if (hasNew) meter += `<p class="muted small">尚余 ${data.core.length - firstPassCompleted} 词待补读</p>`;
-    }
+    const meter = statsMeter(book, data);
     let controls = "";
     if (book.daily && rules.complete(book.daily)) {
       book.daily = null;

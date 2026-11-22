@@ -1,11 +1,11 @@
 词间开发进度
 项目目录 D:\ENGLISH
-当前版本 0.1.6，Android 8.0 及以上
-本地试用包 D:\ENGLISH\build\cijian-0.1.6.apk
+当前版本 0.1.7，Android 8.0 及以上
+本地试用包 D:\ENGLISH\build\cijian-0.1.7.apk
 
 Windows
 
-- Windows x64 便携版 D:\ENGLISH\build\Cijian-Windows-x64-0.1.6.zip。完整解压后打开 Cijian.exe，使用 Microsoft Edge WebView2 Runtime。
+- Windows x64 便携版 D:\ENGLISH\build\Cijian-Windows-x64-0.1.7.zip。完整解压后打开 Cijian.exe，使用 Microsoft Edge WebView2 Runtime。
 - Android、Windows 随包提供同一份标准化词库。学习进度各自保存在本机。
 - Windows 实机已打开打包后的程序，核对周末新词入口和考前榜显示。共享界面通过了桌面及窄屏的先学后默写、暂停续做、高频词加入复习和自选复习测试。
 - 运行 python scripts\build_ports.py windows 可重建 Windows 产物，构建用 .NET 10 SDK。
@@ -27,6 +27,7 @@ Windows
 - 2026-11-21 修复 0.1.4 安卓启动闪退：MainActivity.paintSystemBars() 在 onCreate 里直接调 getWindow().getInsetsController()，此时窗口装饰层还没建，Android 16（vivo X200s）上空指针闪退。改为先 getDecorView() 再取控制器。已用 USB 调试在 vivo X200s（Android 16）上安装 0.1.4 并启动，进程正常运行、无崩溃日志；设置页各项尚待在手机上逐项查看。
 - 2026-11-21 词目可点开学习页（0.1.5）：临考的真题高频、生词本，首页的已熟记、待复习，以及实时测试每轮结果里的单词，点一下进入学习页。学习页和研读卡一样，有释义、其他写法、聆听、词形变化和同根词，可标熟记或待复习；在生词本里的词还能加星或去星。点「返回」（安卓也可按返回键）回到原列表，筛选词和列表位置保留；从实时测试结果点进去的，返回后这一轮结果还在。复习择词页的单词行仍是勾选用，没有加跳转。Android 由 MainActivity.wordPage / linkRow 实现，学习卡与研读共用 wordCard；Windows 在 shared\ui\app.js 的 wordPage / openWord。Windows 已在浏览器里核对列表跳转、标记后返回和实时测试结果跳转；Android 已编译打包并通过回归检查，本机未连手机，尚未在真机上查看。
 - 2026-11-22 安卓词目改为翻页（0.1.6）：真题高频（1,500 词）以及生词本、已熟记、待复习在安卓上每页 50 词，列表底部有「上一页」「下一页」，中间显示「第 n / 30 页」和词序范围；不到 50 词时不显示翻页条。筛选后回到第 1 页，标记移出最后一词时自动退回上一页；从词目点进学习页再返回，停在原来那一页。Windows 共享界面本来就是每页 50 词，未改。实现在 MainActivity.wordList 与 WordAdapter（page / turn）。已在 vivo X200s（Android 16）上通过 USB 安装 0.1.6，核对了翻页、页码、点词进学习页后返回仍在原页；回归检查通过。
+- 2026-11-22 修复设置页统计卡预览（0.1.7）：设置 →「首页」里的预览卡原先写死为第三轮徽章加「首轮已读 1268 / 4544」，不随学习进度变化，第二至第五轮也仍显示「首轮」。现在预览卡与首页统计卡共用同一段代码（Android MainActivity.statsCard，Windows app.js statsMeter），第一轮显示首轮已读与进度条，第二至第五轮显示本轮已复习词数和待补读数。Windows 共享界面用无头 Edge 核对第二轮状态下首页与预览一致；Android 已编译打包，尚未在真机上查看。
 - Windows 界面改在 shared\ui（styles.css、glass.js、app.js）。Android 改在 StudyView.java、MainActivity.java、ReviewPicker.java 和 res\values\styles.xml。
 - 已在浏览器的手机宽度和桌面宽度下检查首页、学习卡、默写、答题反馈、词典详情、对话框和临考页。Android 新界面已编译打包，但本机没有设备或模拟器，尚未在真机上查看。
 

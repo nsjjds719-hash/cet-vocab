@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build"
-VERSION = "0.1.6"
+VERSION = "0.1.7"
 
 
 def assets(out):

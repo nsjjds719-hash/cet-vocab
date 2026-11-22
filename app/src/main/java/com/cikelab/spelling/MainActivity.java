@@ -415,46 +415,7 @@ public final class MainActivity extends Activity {
         }
         bookSwitch(view.body, this::home);
 
-        LinearLayout hero = view.ink(book == WordBook.CET4 ? "IV" : "VI");
-        view.add(hero, view.tag(book == WordBook.CET4 ? "CET-4" : "CET-6", GOLD), 0);
-        String caption;
-        TextView figure;
-        if (stage.pass == 1) {
-            caption = "首轮已读";
-            figure = view.figure(String.valueOf(complete), " / " + words.size(), 40);
-            figure.setContentDescription("首轮已读 " + complete + " 个，共 " + words.size() + " 个");
-        } else {
-            caption = stage.finished ? "五轮圆满 · 已复习" : "本轮已复习";
-            figure = view.figure(String.valueOf(StudyPlanner.passReviewCount(progress, stage.pass)), " 词", 40);
-        }
-        LinearLayout passRow = view.row();
-        passRow.addView(view.badge(stage.pass, stage.finished,
-                        stage.finished ? "五轮圆满" : "第" + NUMERALS[stage.pass] + "轮",
-                        book == WordBook.CET4 ? "CET-4" : "CET-6"),
-                new LinearLayout.LayoutParams(view.dp(68), view.dp(68)));
-        LinearLayout figures = view.column();
-        TextView captionLine = view.text(caption, 13, CREAM_MUTED, false);
-        captionLine.setLetterSpacing(.14f);
-        figures.addView(captionLine);
-        LinearLayout.LayoutParams figureSpace = new LinearLayout.LayoutParams(-2, -2);
-        figureSpace.topMargin = view.dp(3);
-        figures.addView(figure, figureSpace);
-        LinearLayout.LayoutParams figuresSpace = new LinearLayout.LayoutParams(0, -2, 1);
-        figuresSpace.leftMargin = view.dp(16);
-        passRow.addView(figures, figuresSpace);
-        view.add(hero, passRow, 12);
-        if (stage.pass == 1) {
-            ProgressBar meter = view.meter(words.size(), complete);
-            meter.setContentDescription("首轮已读 " + complete + " 个，共 " + words.size() + " 个");
-            LinearLayout.LayoutParams bar = new LinearLayout.LayoutParams(-1, view.dp(4));
-            bar.topMargin = view.dp(14);
-            hero.addView(meter, bar);
-        } else {
-            if (hasNewWords) {
-                view.add(hero, view.text("尚余 " + (words.size() - complete) + " 词待补读",
-                        14, CREAM_MUTED, false), 5);
-            }
-        }
+        LinearLayout hero = statsCard(stage, progress, book == WordBook.CET4 ? "CET-4" : "CET-6");
         view.add(view.body, hero, 16);
 
         panel = view.glass();
@@ -1004,20 +965,58 @@ public final class MainActivity extends Activity {
         settingCard("磨砂浓度", segmentOf(Look.Setting.FROST), "卡片和按键玻璃的透明程度，越浓越不透。", 14);
     }
 
-    private void homeSettings() {
+    /** 首页统计卡：轮次徽章、首轮已读或本轮已复习。设置页预览也用它，保证与真实进度一致。 */
+    private LinearLayout statsCard(StudyStore.Stage stage, Map<String, StudyPlanner.Progress> progress,
+                                   String label) {
+        List<String> words = vocabulary.words(book);
+        int complete = StudyPlanner.firstPassCount(words, progress);
+        boolean hasNewWords = complete < words.size();
         LinearLayout hero = view.ink(book == WordBook.CET4 ? "IV" : "VI");
-        view.add(hero, view.tag("预览", GOLD), 0);
+        view.add(hero, view.tag(label, GOLD), 0);
+        String caption;
+        TextView figure;
+        if (stage.pass == 1) {
+            caption = "首轮已读";
+            figure = view.figure(String.valueOf(complete), " / " + words.size(), 40);
+            figure.setContentDescription("首轮已读 " + complete + " 个，共 " + words.size() + " 个");
+        } else {
+            caption = stage.finished ? "五轮圆满 · 已复习" : "本轮已复习";
+            figure = view.figure(String.valueOf(StudyPlanner.passReviewCount(progress, stage.pass)), " 词", 40);
+        }
         LinearLayout passRow = view.row();
-        passRow.addView(view.badge(3, false, "第三轮", book == WordBook.CET4 ? "CET-4" : "CET-6"),
+        passRow.addView(view.badge(stage.pass, stage.finished,
+                        stage.finished ? "五轮圆满" : "第" + NUMERALS[stage.pass] + "轮",
+                        book == WordBook.CET4 ? "CET-4" : "CET-6"),
                 new LinearLayout.LayoutParams(view.dp(68), view.dp(68)));
         LinearLayout figures = view.column();
-        figures.addView(view.text("首轮已读", 13, CREAM_MUTED, false));
-        figures.addView(view.figure("1268", " / 4544", 40));
+        TextView captionLine = view.text(caption, 13, CREAM_MUTED, false);
+        captionLine.setLetterSpacing(.14f);
+        figures.addView(captionLine);
+        LinearLayout.LayoutParams figureSpace = new LinearLayout.LayoutParams(-2, -2);
+        figureSpace.topMargin = view.dp(3);
+        figures.addView(figure, figureSpace);
         LinearLayout.LayoutParams figuresSpace = new LinearLayout.LayoutParams(0, -2, 1);
         figuresSpace.leftMargin = view.dp(16);
         passRow.addView(figures, figuresSpace);
         view.add(hero, passRow, 12);
-        view.add(view.body, hero, 16);
+        if (stage.pass == 1) {
+            ProgressBar meter = view.meter(words.size(), complete);
+            meter.setContentDescription("首轮已读 " + complete + " 个，共 " + words.size() + " 个");
+            LinearLayout.LayoutParams bar = new LinearLayout.LayoutParams(-1, view.dp(4));
+            bar.topMargin = view.dp(14);
+            hero.addView(meter, bar);
+        } else {
+            if (hasNewWords) {
+                view.add(hero, view.text("尚余 " + (words.size() - complete) + " 词待补读",
+                        14, CREAM_MUTED, false), 5);
+            }
+        }
+        return hero;
+    }
+
+    private void homeSettings() {
+        Map<String, StudyPlanner.Progress> progress = store.progress(book);
+        view.add(view.body, statsCard(updateStage(progress), progress, "预览"), 16);
 
         settingCard("数字字体", choices(Look.Setting.NUMERAL, id -> {
             TextView sample = view.text("128", 26, CREAM, false);
