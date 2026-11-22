@@ -12,8 +12,10 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.cikelab.spelling.StudyPlanner.NEVER;
 
@@ -148,6 +150,30 @@ final class StudyStore extends SQLiteOpenHelper {
         history.removeIf(previous -> Practice.matches(previous, query));
         history.add(0, query);
         put("dictionary_history", new JSONArray(StudyPlanner.take(history, 20)).toString());
+    }
+
+    /** 生词本星标：实时测试后标记不会的词，可随时去除。存于 settings，免去升级数据表。 */
+    Set<String> starred(WordBook book) {
+        Set<String> result = new LinkedHashSet<>();
+        try {
+            JSONArray stars = new JSONArray(value("starred." + book.name(), "[]"));
+            for (int i = 0; i < stars.length(); i++) {
+                result.add(stars.getString(i));
+            }
+        } catch (JSONException invalidStars) {
+            return new LinkedHashSet<>();
+        }
+        return result;
+    }
+
+    void star(WordBook book, String word, boolean on) {
+        Set<String> stars = starred(book);
+        if (on) {
+            stars.add(word);
+        } else {
+            stars.remove(word);
+        }
+        put("starred." + book.name(), new JSONArray(stars).toString());
     }
 
     WordBook selectedBook() {

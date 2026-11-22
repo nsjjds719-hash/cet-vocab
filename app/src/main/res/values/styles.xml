@@ -2,13 +2,53 @@
 <resources>
     <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#2D5847</item>
-        <item name="android:windowBackground">#F8F6EF</item>
+        <item name="android:colorAccent">#C2643F</item>
+        <item name="android:colorControlActivated">#C2643F</item>
+        <item name="android:textColorPrimary">#24201B</item>
+        <item name="android:textColorSecondary">#7D7366</item>
+        <item name="android:textColorHighlight">#38C2643F</item>
+        <item name="android:windowBackground">#F3EFE6</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">#F8F6EF</item>
-        <item name="android:navigationBarColor">#F8F6EF</item>
+        <item name="android:statusBarColor">#F3EFE6</item>
+        <item name="android:navigationBarColor">#E9E2D4</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:alertDialogTheme">@style/GlassDialog</item>
+    </style>
+
+    <!-- 对话框：暖纸圆角卡片，陶土色按钮 -->
+    <style name="GlassDialog" parent="android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dialog_glass</item>
+        <item name="android:colorAccent">#C2643F</item>
+        <item name="android:colorControlActivated">#C2643F</item>
+        <item name="android:textColorPrimary">#24201B</item>
+        <item name="android:textColorSecondary">#4A433A</item>
+        <item name="android:backgroundDimAmount">0.28</item>
+    </style>
+
+    <!-- 深色主题：墨夜纸面；按键颜色与背景照片由 StudyView.palette 在代码里套用 -->
+    <style name="AppThemeDark" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#C2643F</item>
+        <item name="android:colorControlActivated">#C2643F</item>
+        <item name="android:textColorPrimary">#EDE5D8</item>
+        <item name="android:textColorSecondary">#9B907F</item>
+        <item name="android:textColorHighlight">#40C2643F</item>
+        <item name="android:windowBackground">#1B1815</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#1B1815</item>
+        <item name="android:navigationBarColor">#110F0D</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:alertDialogTheme">@style/GlassDialogDark</item>
+    </style>
+
+    <style name="GlassDialogDark" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/dialog_glass_dark</item>
+        <item name="android:colorAccent">#C2643F</item>
+        <item name="android:colorControlActivated">#C2643F</item>
+        <item name="android:textColorPrimary">#EDE5D8</item>
+        <item name="android:textColorSecondary">#CFC4B4</item>
+        <item name="android:backgroundDimAmount">0.5</item>
     </style>
 </resources>
-

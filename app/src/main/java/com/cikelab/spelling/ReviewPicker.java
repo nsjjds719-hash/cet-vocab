@@ -56,22 +56,23 @@ final class ReviewPicker {
         this.kind = kind;
         selected.retainAll(ordered);
 
-        view.add(view.body, view.text("勾选单词，或按列表顺序选取指定数量。", 14, MUTED, false), 5);
+        view.add(view.body, view.text("逐个勾选，或按列表顺序取若干词。", 13, MUTED, false), 5);
         EditText search = new EditText(activity);
         search.setSingleLine();
         search.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        search.setHint("搜索英文单词");
+        search.setHint("筛选单词");
         search.setTextSize(16);
         search.setTextColor(INK);
-        search.setHintTextColor(MUTED);
-        search.setMinHeight(view.dp(48));
-        search.setPadding(view.dp(12), view.dp(7), view.dp(12), view.dp(7));
-        search.setBackground(view.rounded(CARD, 12, BORDER));
+        search.setHintTextColor(HINT);
+        search.setMinHeight(view.dp(50));
+        search.setPadding(view.dp(20), view.dp(7), view.dp(20), view.dp(7));
+        search.setBackground(view.field(26));
+        search.setElevation(view.dp(2));
         view.add(view.body, search, 12);
 
         adapter = new ChoiceAdapter();
-        amount = view.button("按数量选词", Style.SECONDARY, this::pickAmount);
-        clear = view.button("清空选择", Style.TEXT, () -> {
+        amount = view.button("按数择词", Style.SECONDARY, this::pickAmount);
+        clear = view.button("清空所选", Style.TEXT, () -> {
             selected.clear();
             updateActions();
             adapter.notifyDataSetChanged();
@@ -80,7 +81,7 @@ final class ReviewPicker {
         ListView list = new ListView(activity);
         list.setDividerHeight(0);
         list.setAdapter(adapter);
-        TextView empty = view.text("没有符合条件的旧词。", 15, MUTED, false);
+        TextView empty = view.text("没有相符的旧词。", 15, MUTED, false);
         view.add(view.body, empty, 10);
         list.setEmptyView(empty);
         view.body.addView(list, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -119,12 +120,12 @@ final class ReviewPicker {
         EditText input = new EditText(activity);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
         input.setSingleLine(true);
-        input.setHint("复习数量");
+        input.setHint("词数");
         LinearLayout box = view.column();
         box.setPadding(view.dp(24), view.dp(4), view.dp(24), 0);
         view.add(box, input, 0);
-        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("选取复习数量")
-                .setMessage("将按当前列表顺序选取，最多 " + visible.size() + " 个。")
+        AlertDialog dialog = new AlertDialog.Builder(activity).setTitle("按序择词")
+                .setMessage("按当前列表顺序选取，最多 " + visible.size() + " 个。")
                 .setView(box).setNegativeButton("取消", null).setPositiveButton("选取", null).create();
         dialog.setOnShowListener(ignored -> dialog.getButton(AlertDialog.BUTTON_POSITIVE)
                 .setOnClickListener(button -> {
@@ -140,6 +141,7 @@ final class ReviewPicker {
                     dialog.dismiss();
                 }));
         dialog.show();
+        tint(dialog);
     }
 
     private int positiveInt(String value) {
@@ -151,7 +153,7 @@ final class ReviewPicker {
     }
 
     private void updateActions() {
-        start.setText(selected.isEmpty() ? "开始复习" : "开始复习 · " + selected.size() + " 个词");
+        start.setText(selected.isEmpty() ? "开始复习" : "开始复习 · " + selected.size() + " 词");
         start.setEnabled(!selected.isEmpty());
         clear.setEnabled(!selected.isEmpty());
         amount.setEnabled(!visible.isEmpty());
@@ -169,10 +171,11 @@ final class ReviewPicker {
             CheckBox box = new CheckBox(activity);
             box.setText(spelling);
             box.setTextColor(INK);
-            box.setTextSize(17);
+            box.setTextSize(18);
+            box.setTypeface(android.graphics.Typeface.SERIF);
             box.setMinHeight(view.dp(52));
             box.setPadding(view.dp(6), 0, view.dp(8), 0);
-            box.setButtonTintList(ColorStateList.valueOf(GREEN));
+            box.setButtonTintList(ColorStateList.valueOf(CLAY));
             box.setChecked(selected.contains(key));
             box.setOnCheckedChangeListener((button, checked) -> {
                 if (checked) {
@@ -183,15 +186,15 @@ final class ReviewPicker {
                 updateActions();
             });
             int priority = StudyPlanner.priority(entry, pass, kind);
-            String detail = priority == 0 ? "待复习" : priority == 1 ? "上一周目不熟"
-                    : entry.status == StudyPlanner.Status.MASTERED ? "已学会" : "已看过";
+            String detail = priority == 0 ? "待复习" : priority == 1 ? "上轮生疏"
+                    : entry.status == StudyPlanner.Status.MASTERED ? "已熟记" : "已读过";
             if (StudyPlanner.checkedInPass(entry, pass, kind)) {
                 detail += " · 已练";
             }
             TextView status = view.text(detail, 12, priority == 0 ? WARNING : MUTED, false);
             LinearLayout row = view.row();
             row.setPadding(view.dp(6), 0, view.dp(10), 0);
-            row.setBackground(view.rounded(index % 2 == 0 ? CARD : PAPER, 10, 0));
+            row.setBackground(view.rounded(index % 2 == 0 ? ROW : 0x00000000, 16, 0));
             row.addView(box, new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(status);
             return row;

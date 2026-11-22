@@ -7,13 +7,14 @@
   const dialog = document.getElementById("dialog");
   const notice = document.getElementById("notice");
   const labels = { cet4: "英语四级", cet6: "英语六级" };
-  const names = { new: "学习新词", due: "到期复习", weekend: "周末复习",
-    pass: "周目复习", exam: "考前重点复习" };
+  const names = { get new() { return "新词" + window.CijianLook.value("newEmoji"); }, due: "到期复习", weekend: "周末复习",
+    pass: "本轮复习", exam: "临考生词" };
   const formLabels = { 3: "第三人称单数", p: "过去式", d: "过去分词", i: "现在分词",
     s: "复数", r: "比较级", t: "最高级" };
+  const numerals = ["", "一", "二", "三", "四", "五", "六"];
   const formatDay = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric" });
   const storageKey = "cijian.study.v1";
-  const host = window.chrome?.webview ?? window.webkit?.messageHandlers?.cijian;
+  const host = window.chrome?.webview;
   const waiting = new Map();
   const pageSize = 50;
   const dictionaryPageSize = 8;
@@ -29,6 +30,9 @@
   let dictionaryMatches = [];
   let dictionaryOffset = 0;
   let dictionarySelection = null;
+  let live = null;
+  let wordReturn = null;
+  const liveSize = 10;
 
   function escape(value) {
     return String(value).replace(/[&<>"']/g, character =>
@@ -119,18 +123,21 @@
     stopAudio();
     const token = ++audioRun;
     const feedback = control.parentElement.querySelector(".message");
-    feedback.textContent = "正在播放…";
+    feedback.textContent = "";
+    control.classList.add("playing");
     try {
       if (host) await native("speak", word);
       else await browserVoice(word);
-      if (token === audioRun) feedback.textContent = "播放完毕，可重听。";
+      if (token === audioRun) feedback.textContent = "";
     } catch (error) {
       if (token === audioRun) feedback.textContent = error.message;
+    } finally {
+      control.classList.remove("playing");
     }
   }
 
   function audio(word, highlighted = false) {
-    return `<div class="audio">${button("▶  播放发音", "speak", highlighted ? "gold" : "", word)}
+    return `<div class="audio">${button("聆听", "speak", highlighted ? "gold" : "", word)}
       <span class="small message" role="status"></span></div>`;
   }
 
@@ -138,12 +145,214 @@
     route = page;
     shownDay = rules.localDay();
     app.innerHTML = html;
+    flames(app);
     window.scrollTo(0, 0);
   }
 
+  // 动态表情：把文字里的指定表情包成会动的 span（对照表在 look.js，动画见 styles.css 的同名类）。
+  const lively = window.CijianLook.lively;
+  const livelyPattern = new RegExp("(" + Object.keys(lively).sort((a, b) => b.length - a.length).join("|") + ")", "u");
+  function flames(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walker.nextNode()) if (livelyPattern.test(walker.currentNode.nodeValue)) nodes.push(walker.currentNode);
+    for (const node of nodes) {
+      const fragment = document.createDocumentFragment();
+      for (const part of node.nodeValue.split(livelyPattern)) {
+        if (lively[part]) {
+          const emoji = document.createElement("span");
+          emoji.className = "lively " + lively[part];
+          emoji.textContent = part;
+          fragment.append(emoji);
+        } else if (part) {
+          fragment.append(part);
+        }
+      }
+      node.replaceWith(fragment);
+    }
+  }
+
+  // 设置里选的表情；选「无」时为空字符串。
+  function emoji(key) {
+    return window.CijianLook.value(key);
+  }
+
+  // 首页轮次徽章，七种样式（设置 → 首页样式），均画在 66×66 的画布上，与 Android 的 StudyView.PassBadge 一致。
+  const badgeShapes = {
+    ring: () => '<circle cx="33" cy="33" r="31"/>',
+    seal: () => '<circle cx="33" cy="33" r="31"/><circle class="dash" cx="33" cy="33" r="26"/>',
+    progress: pass => {
+      let arcs = "";
+      for (let i = 0; i < 5; i++) {
+        const from = (-90 + i * 72 + 5) * Math.PI / 180, to = from + 62 * Math.PI / 180;
+        const point = angle => (33 + 30 * Math.cos(angle)).toFixed(2) + " " + (33 + 30 * Math.sin(angle)).toFixed(2);
+        arcs += `<path class="${i < pass ? "on" : ""}" d="M${point(from)} A30 30 0 0 1 ${point(to)}"/>`;
+      }
+      return arcs;
+    },
+    stamp: () => '<g transform="rotate(-8 33 33)"><circle class="fill" cx="33" cy="33" r="31"/>'
+      + '<circle class="inner" cx="33" cy="33" r="27"/></g>',
+    // 两枝月桂：叶片沿半径 30 的圆弧自下而上排开，越往上越淡。
+    laurel: () => {
+      let leaves = '<path d="M13 57A30 30 0 0 1 21 6M53 57A30 30 0 0 0 45 6"/>';
+      for (const side of [-1, 1]) for (let i = 0; i < 6; i++) {
+        const angle = 155 - i * 22, radians = angle * Math.PI / 180;
+        const x = (33 + side * 30 * Math.sin(radians)).toFixed(1);
+        const y = (33 - 30 * Math.cos(radians)).toFixed(1);
+        leaves += `<ellipse cx="${x}" cy="${y}" rx="2.4" ry="5.6" opacity="${(1 - i * .08).toFixed(2)}"
+          transform="rotate(${side * (angle - 145)} ${x} ${y})"/>`;
+      }
+      return leaves;
+    },
+    glass: () => '<defs><radialGradient id="badge-glass" cx="35%" cy="28%" r="80%">'
+      + '<stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".45" stop-color="#e8c993" stop-opacity=".22"/>'
+      + '<stop offset="1" stop-color="#c2643f" stop-opacity=".35"/></radialGradient></defs>'
+      + '<circle cx="33" cy="33" r="31" fill="url(#badge-glass)"/>'
+      + '<ellipse cx="24" cy="18" rx="11" ry="5" transform="rotate(-25 24 18)"/>',
+    orbit: (pass, tag) => '<defs><path id="badge-orbit" d="M33 33m-27 0a27 27 0 1 1 54 0a27 27 0 1 1 -54 0"/></defs>'
+      + '<circle cx="33" cy="33" r="20"/><text><textPath href="#badge-orbit">THE · PASS · '
+      + tag + ' · THE · PASS · ' + tag + ' ·</textPath></text>'
+  };
+
+  function badge(pass, finished, style = window.CijianLook.get("badge")) {
+    const label = finished ? "五轮圆满" : "第" + numerals[pass] + "轮";
+    const tag = state?.book === "cet6" ? "CET-6" : "CET-4";
+    return `<span class="laurel badge-${style}" role="img" aria-label="${label}" title="${label}">
+      <svg viewBox="0 0 66 66" aria-hidden="true">${badgeShapes[style](finished ? 5 : pass, tag)}</svg>
+      <span class="numeral">${pass}</span></span>`;
+  }
+
+  function seal() {
+    return `<button type="button" class="seal" data-action="exam" data-value=""
+      aria-label="临考 · 考前复习" title="临考">考</button>`;
+  }
+
+  function gear() {
+    return `<button type="button" class="gear" data-action="settings" data-value=""
+      aria-label="设置" title="设置"><svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16"/><circle cx="9" cy="7" r="2.2"/><circle cx="15.5" cy="12" r="2.2"/>
+      <circle cx="7.5" cy="17" r="2.2"/></svg></button>`;
+  }
+
+  // 设置：首页列出四个分组，点进去是子页。外观由 look.js 保存在本机，不进学习记录。
+  const settingGroups = {
+    look: { name: "外观", glyph: "色" },
+    home: { name: "首页样式", glyph: "数" },
+    emoji: { name: "动态表情", glyph: "趣" },
+    reading: { name: "阅读与动效", glyph: "读" }
+  };
+
+  function optionName(key) {
+    return window.CijianLook.options[key].values[window.CijianLook.get(key)];
+  }
+
+  function settingSummary(group) {
+    const look = window.CijianLook;
+    switch (group) {
+      case "look":
+        return [look.themes[look.theme], look.accents[look.accent].name,
+          look.photo ? "自定义照片" : "暖纸水印"].join(" · ");
+      case "home": return optionName("numeral") + " · " + optionName("badge");
+      case "emoji":
+        return ["newEmoji", "searchEmoji", "foundEmoji"].map(key => emoji(key) || "无").join("　");
+      default:
+        return "字号" + optionName("textSize") + " · 跳动" + optionName("wiggle")
+          + " · 浮现" + optionName("entrance");
+    }
+  }
+
+  function settings() {
+    const groups = Object.entries(settingGroups).map(([id, group]) =>
+      `<button type="button" class="card group" data-action="settings-group" data-value="${id}">
+        <span class="glyph" aria-hidden="true">${group.glyph}</span>
+        <span class="label"><span class="name">${group.name}</span><span class="muted">${escape(settingSummary(id))}</span></span>
+        <span class="chevron" aria-hidden="true">›</span></button>`).join("");
+    setPage("settings", `<div class="narrow stack">${title("设置", button("返回", "home", "quiet"),
+      "外观只保存在这台设备上，不影响学习记录。")}${groups}<div class="actions">${button("完成", "home", "primary")}</div></div>`);
+  }
+
+  // 选项格：data-value 为「设置键:取值」，由 onClick 的 look 分支统一处理。
+  function choice(key, value, sample, label, extra = "") {
+    const chosen = window.CijianLook.get(key) === value;
+    return `<button type="button" class="choice ${extra} ${chosen ? "chosen" : ""}" data-action="look"
+      data-value="${escape(key + ":" + value)}" aria-pressed="${chosen}">${sample}<span>${escape(label)}</span></button>`;
+  }
+
+  function choices(key, sample, extra = "") {
+    return `<div class="choices">${Object.entries(window.CijianLook.options[key].values).map(([value, label]) =>
+      choice(key, value, sample(value), label, typeof extra === "function" ? extra(value) : extra)).join("")}</div>`;
+  }
+
+  function segmentOf(key, labels = window.CijianLook.options[key].values) {
+    return `<div class="segment trio">${Object.entries(labels).map(([value, label]) =>
+      button(label, "look", window.CijianLook.get(key) === value ? "chosen" : "", key + ":" + value)).join("")}</div>`;
+  }
+
+  function settingsGroup(id) {
+    const look = window.CijianLook;
+    let body = "";
+    if (id === "look") {
+      const swatches = Object.entries(look.accents).map(([key, accent]) =>
+        `<button type="button" class="swatch ${key === look.accent ? "chosen" : ""}" data-action="look"
+          data-value="accent:${key}" aria-pressed="${key === look.accent}"><span class="dot"></span>${escape(accent.name)}</button>`).join("");
+      body = `<section class="card stack"><h2>主题</h2>${segmentOf("theme", look.themes)}
+          <p class="muted small">跟随系统时，会随电脑或手机的深浅色设置自动切换。</p></section>
+        <section class="card stack"><h2>按键颜色</h2><div class="swatches">${swatches}</div>
+          <p class="muted small">主按键、开关、进度条与朱印都会换成这个颜色。</p></section>
+        <section class="card stack"><h2>背景照片</h2>
+          <div class="thumb ${look.photo ? "filled" : ""}" id="photo-thumb" role="img"
+            aria-label="${look.photo ? "当前背景照片" : "默认背景：暖纸水印"}">${escape(emoji("watermark") || "　")}</div>
+          <input class="photo-file" id="photo-file" type="file" accept="image/*" tabindex="-1">
+          <div class="pair">${button(look.photo ? "更换照片" : "选择照片", "photo-pick")}
+            ${button("恢复默认", "photo-clear", "quiet", "", !look.photo)}</div>
+          <p class="muted small">照片会自动压缩后存在本机，卡片会加一层磨砂以便看清文字。</p>
+          ${look.photo ? `<h3>薄纱浓度</h3>${segmentOf("veil")}<p class="muted small">照片上那层薄纱，越浓照片越淡、字越清楚。</p>` : ""}</section>
+        <section class="card stack"><h2>背景水印字</h2>
+          ${choices("watermark", value => `<span class="sample mark">${value === "none" ? "—" : value}</span>`)}
+          <p class="muted small">右下角那枚大号宋体字；用了背景照片时不显示。</p></section>
+        <section class="card stack"><h2>磨砂浓度</h2>${segmentOf("frost")}
+          <p class="muted small">卡片和按键玻璃的透明程度，越浓越不透。</p></section>`;
+    } else if (id === "home") {
+      const preview = `<section class="card hero preview-hero stack" data-mark="${state.book === "cet4" ? "IV" : "VI"}">
+          <p class="tag">预览</p><div class="pass-row">${badge(3, false)}<div><p class="muted caption">首轮已读</p>
+          <p class="figure">1268<small> / 4544</small></p></div></div></section>`;
+      body = `${preview}<section class="card stack"><h2>数字字体</h2>
+          ${choices("numeral", () => '<span class="sample digits">128</span>', value => "on-ink numeral-" + value)}
+          <p class="muted small">首页统计数字和轮次徽章里的数字。</p></section>
+        <section class="card stack"><h2>轮次徽章</h2>
+          ${choices("badge", value => badge(3, false, value), "on-ink")}
+          <p class="muted small">首页统计卡左侧的圆形标记，圈内是第几轮。</p></section>`;
+    } else if (id === "emoji") {
+      const sample = value => `<span class="sample">${value === "none" ? "—" : value}</span>`;
+      body = `<section class="card stack"><h2>新词</h2>${choices("newEmoji", sample)}
+          <p class="muted small">「新词」按钮、学习页标题和首页日期行。</p></section>
+        <section class="card stack"><h2>查阅按钮</h2>${choices("searchEmoji", sample)}
+          <p class="muted small">查词框右边的按钮；选「无」时显示「查阅」二字。</p></section>
+        <section class="card stack"><h2>查词结果</h2>${choices("foundEmoji", sample)}
+          <p class="muted small">结果列表上方「N 条」前面的表情。</p></section>`;
+    } else {
+      const toggle = (key, label, note) => `<label class="control row between">${label}
+          <input id="look-${key}" type="checkbox" role="switch" ${look.get(key) === "on" ? "checked" : ""}></label>
+          <p class="muted small">${note}</p>`;
+      body = `<section class="card stack"><h2>字号</h2>${segmentOf("textSize")}
+          <p class="muted small">释义、按钮和单词卡一起放大。</p></section>
+        <section class="card stack"><h2>动效</h2>
+          ${toggle("wiggle", "表情跳动", "关掉后表情保持静止。")}
+          ${toggle("entrance", "换页浮现", "关掉后换页时内容直接出现，不再逐块浮上来。")}</section>`;
+    }
+    setPage("settings-" + id, `<div class="narrow stack">${title(settingGroups[id].name,
+      button("返回", "settings", "quiet"))}${body}<div class="actions">${button("完成", "home", "primary")}</div></div>`);
+    const thumb = document.getElementById("photo-thumb");
+    if (thumb && look.photo) thumb.style.backgroundImage = `url("${look.photo}")`;
+  }
+
+  function currentGroup() {
+    return route.startsWith("settings-") ? route.slice("settings-".length) : "";
+  }
+
   function levelButtons() {
-    return `<div class="pair">${Object.keys(labels).map(key =>
-      button(labels[key], "book", key === state.book ? "primary" : "", key)).join("")}</div>`;
+    return `<div class="pair segment">${Object.keys(labels).map(key =>
+      button(labels[key], "book", key === state.book ? "chosen" : "", key)).join("")}</div>`;
   }
 
   function selection() {
@@ -162,15 +371,20 @@
     const hasNew = firstPassCompleted < data.core.length;
     const canLearn = hasNew && rules.allowsNew(day, state.learnOnWeekends);
     const studied = rules.viewedToday(book.entries, day);
-    const description = formatDay.format(new Date()) + (weekend ? (canLearn ? " · 周末学习日" : " · 周末复习日") : " · 学习日");
+    const fire = emoji("newEmoji");
+    const description = formatDay.format(new Date())
+      + (weekend ? (canLearn ? " · 周末" + (fire || "新词") : " · 周末复习") : fire ? " · " + fire : "");
     let meter;
     if (book.pass === 1) {
-      meter = `<p class="muted">词书首轮 ${firstPassCompleted} / ${data.core.length}</p>
+      meter = `<div class="pass-row">${badge(1, false)}<div><p class="muted caption">首轮已读</p>
+          <p class="figure">${firstPassCompleted}<small> / ${data.core.length}</small></p></div></div>
         <progress class="bar" value="${firstPassCompleted}" max="${data.core.length}" aria-label="首轮完成进度"></progress>`;
     } else {
       const count = Object.values(book.entries).filter(entry => rules.reviewedInPass(entry, book.pass)).length;
-      meter = `<p class="muted">本周目已复习 ${count} 个词</p>`;
-      if (hasNew) meter += `<p class="muted small">待补学 ${data.core.length - firstPassCompleted} 个词</p>`;
+      meter = `<div class="pass-row">${badge(book.pass, book.finished)}<div>
+          <p class="muted caption">${book.finished ? "五轮圆满 · 已复习" : "本轮已复习"}</p>
+          <p class="figure">${count}<small> 词</small></p></div></div>`;
+      if (hasNew) meter += `<p class="muted small">尚余 ${data.core.length - firstPassCompleted} 词待补读</p>`;
     }
     let controls = "";
     if (book.daily && rules.complete(book.daily)) {
@@ -178,50 +392,50 @@
       persist();
     }
     if (book.daily) {
-      controls = `<div class="pair">${button("继续" + names[book.daily.kind], "resume", "primary", "daily")}
-        ${button("结束这组", "end-session", "quiet")}</div>`;
+      controls = `<div class="pair">${button("接续" + names[book.daily.kind], "resume", "primary", "daily")}
+        ${button("收起本组", "end-session", "quiet")}</div>`;
     } else {
       let reviewAvailable = false;
       if (weekend) {
         reviewAvailable = rules.oldWords(book.entries, book.pass).length > 0;
-        if (reviewAvailable) controls += button("自选旧词复习", "picker", "primary", "weekend");
+        if (reviewAvailable) controls += button("择词复习", "picker", "primary", "weekend");
       } else if (due.length) {
         reviewAvailable = true;
         controls += button("复习到期词", "picker", "primary", "due");
       }
       if (canLearn) {
         const newItems = rules.newWords(data.core, book.entries, day, state.quota, state.learnOnWeekends);
-        controls += newItems.length ? button(book.pass === 1 ? "开始学新词" : "补学新词",
+        controls += newItems.length ? button(book.pass === 1 ? "开始今日新词" : "补读新词",
           "new", reviewAvailable ? "" : "primary")
-          : '<p class="muted small">今天的新词任务已完成。</p>';
+          : '<p class="muted small">今日新词已读完。</p>';
       }
       if (book.pass > 1 && !book.finished) {
-        if (!weekend) controls += button("自选本周目复习", "picker", reviewAvailable ? "" : "primary", "pass");
-        controls += button("结束本周目", "end-pass", "quiet");
+        if (!weekend) controls += button("本轮择词复习", "picker", reviewAvailable ? "" : "primary", "pass");
+        controls += button("完结本轮", "end-pass", "quiet");
       }
-      if (!controls) controls = '<p class="muted small">今天暂无旧词可复习。</p>';
+      if (!controls) controls = '<p class="muted small">今日无旧词需复习。</p>';
     }
-    const preferences = hasNew ? `<label class="control row between">周末学新词
+    const preferences = hasNew ? `<label class="control row between">周末也读新词
       <input id="weekends" type="checkbox" role="switch" ${state.learnOnWeekends ? "checked" : ""}></label>` : "";
-    setPage("home", `<div class="stack">${title("词间", button("考前复习", "exam"), description)}
-      ${dictionaryField()}${state.dictionaryHistory?.length ? button("搜索记录", "dictionary-history", "quiet") : ""}
+    setPage("home", `<div class="stack">${title("词间", `<div class="corner">${gear()}${seal()}</div>`, description)}
+      ${dictionaryField()}${state.dictionaryHistory?.length ? button("查阅记录", "dictionary-history", "quiet") : ""}
       ${levelButtons()}<div class="dashboard">
-        <section class="card hero stack"><p class="tag">${state.book === "cet4" ? "CET-4" : "CET-6"}</p>
-          <h2>${book.finished ? "已完成五周目" : "第 " + book.pass + " 周目"}</h2>${meter}</section>
-        <section class="card stack"><div class="row between"><h2>今日任务</h2>
-          ${hasNew ? button("设置新词量", "quota", "quiet") : ""}</div>
-          <p class="muted small">${canLearn ? `今日新词 ${studied} / ${state.quota}　·　` : ""}
-            到期复习 ${due.length} 个</p><div class="actions stack">${controls}</div>${preferences}</section>
-      </div><div class="pair">${button("已学会 " + mastered, "records", "", "mastered")}
-        ${button("待复习 " + pending.length, "records", "", "review")}</div></div>`);
+        <section class="card hero stack" data-mark="${state.book === "cet4" ? "IV" : "VI"}"><p class="tag">${state.book === "cet4" ? "CET-4" : "CET-6"}</p>${meter}</section>
+        <section class="card stack"><div class="row between"><h2>今日</h2>
+          ${hasNew ? button("每日词量", "quota", "quiet") : ""}</div>
+          <p class="muted small">${canLearn ? `新词 ${studied} / ${state.quota}　·　` : ""}
+            到期复习 ${due.length} 词</p><div class="actions stack">${controls}</div>${preferences}</section>
+      </div><div class="pair">${button("已熟记 · " + mastered, "records", "", "mastered")}
+        ${button("待复习 · " + pending.length, "records", "", "review")}</div></div>`);
   }
 
   function dictionaryField(query = "") {
     return `<form class="row dictionary-search" role="search">
-      <input name="query" type="search" placeholder="搜索英文单词或中文释义"
-        aria-label="搜索英文单词或中文释义" enterkeyhint="search"
+      <input name="query" type="search" placeholder="中英互查词典"
+        aria-label="中英互查词典" enterkeyhint="search"
         value="${escape(query)}" required>
-      <button class="primary" type="submit">搜索</button></form>`;
+      <button class="ink search-run ${emoji("searchEmoji") ? "" : "text"}" type="submit" aria-label="查阅"
+        title="查阅">${emoji("searchEmoji") || "查阅"}</button></form>`;
   }
 
   function lookup() {
@@ -264,14 +478,14 @@
     let results;
     if (!dictionaryQuery) {
       const history = state.dictionaryHistory ?? [];
-      results = history.length ? `<section class="stack"><h2>最近搜索</h2><div class="actions stack">
+      results = history.length ? `<section class="stack"><h2>最近查阅</h2><div class="actions stack">
         ${history.map(query => button(query, "dictionary-repeat", "", query)).join("")}</div></section>`
-        : '<p class="muted">暂无搜索记录</p>';
+        : '<p class="muted">还没有查阅记录</p>';
     } else {
-      results = rows ? `<p class="muted small">共 ${dictionaryMatches.length} 条结果</p>${rows}${paging}`
+      results = rows ? `<p class="muted small">${emoji("foundEmoji") ? emoji("foundEmoji") + " " : ""}${dictionaryMatches.length} 条</p>${rows}${paging}`
         : '<p class="muted">无结果</p>';
     }
-    setPage("dictionary", `<div class="narrow stack">${title("词典", button("返回首页", "dictionary-exit", "quiet"))}
+    setPage("dictionary", `<div class="narrow stack">${title("词典", button("合上词典", "dictionary-exit", "quiet"))}
       ${dictionaryField(dictionaryQuery)}${results}</div>`);
   }
 
@@ -287,10 +501,10 @@
     const families = window.CijianDictionary.families(index, entry).map(family =>
       `<section class="card dictionary-family">${family.filter(other => other !== entry).map(other =>
         button(other.spelling, "dictionary-detail", "quiet", other.key)).join("")}</section>`).join("");
-    setPage("dictionary-detail", `<div class="narrow stack">${title("词条详情",
-      button("返回搜索结果", "dictionary-results", "quiet"))}
-      ${button("结束查词", "dictionary-exit", "quiet")}
-      <article class="card stack"><h2 lang="en" class="learn-title">${escape(entry.spelling)}</h2>
+    setPage("dictionary-detail", `<div class="narrow stack">${title("词条",
+      button("返回结果", "dictionary-results", "quiet"))}
+      ${button("合上词典", "dictionary-exit", "quiet")}
+      <article class="card stack word-card" data-mark="${escape(entry.spelling)}"><h2 lang="en" class="learn-title">${escape(entry.spelling)}</h2>
         <p class="terms">${escape(window.CijianDictionary.meanings(index, entry).join("\n"))}</p>
         ${entry.variants.length ? `<p class="muted small">其他写法　${escape(entry.variants.join(" / "))}</p>` : ""}
       </article>
@@ -311,8 +525,8 @@
     const chosen = dictionarySelection
       ?? window.CijianDictionary.suggestedTerm(dictionaryQuery, dictionaryMatches);
     if (chosen) {
-      openDialog("加入待复习？", `<p>把 ${escape(chosen.spelling)} 加入${labels[state.book]}的待复习吗？</p>
-        <div class="pair">${button("不加入", "dictionary-no")}${button("加入复习", "dictionary-yes", "primary")}</div>`,
+      openDialog("收入复习？", `<p>把 <span lang="en">${escape(chosen.spelling)}</span> 收入${labels[state.book]}的待复习吗？</p>
+        <div class="pair">${button("不必", "dictionary-no")}${button("收入复习", "dictionary-yes", "primary")}</div>`,
         action => {
           dialog.close();
           if (action === "dictionary-yes") markDictionaryWord(chosen);
@@ -321,8 +535,8 @@
       return;
     }
     const visible = dictionaryMatches.slice(dictionaryOffset, dictionaryOffset + dictionaryPageSize);
-    openDialog("选一个词加入待复习？", `<div class="actions stack">${visible.map((item, i) =>
-      button("加入 " + item.spelling, "choose-" + i)).join("")}${button("不加入", "dictionary-no", "quiet")}</div>`,
+    openDialog("选一个词收入复习？", `<div class="actions stack">${visible.map((item, i) =>
+      button("收入 " + item.spelling, "choose-" + i)).join("")}${button("不必", "dictionary-no", "quiet")}</div>`,
       action => {
         dialog.close();
         if (action === "dictionary-no") home();
@@ -332,10 +546,10 @@
 
   function listPage(page, kind, source, heading, extra = "") {
     list = { kind, source, query: "", offset: 0, picked: new Set() };
-    setPage(page, `<div class="narrow stack">${title(heading, button("返回首页", "home", "quiet"))}
-      ${extra}<input id="search" type="search" aria-label="搜索英文单词" placeholder="搜索英文单词">
-      ${page === "picker" ? `<div class="pair">${button("按数量选词", "amount")}
-        ${button("清空选择", "clear", "quiet")}</div>` : ""}
+    setPage(page, `<div class="narrow stack">${title(heading, button("返回", "home", "quiet"))}
+      ${extra}<input id="search" type="search" aria-label="筛选英文单词" placeholder="筛选单词">
+      ${page === "picker" ? `<div class="pair">${button("按数择词", "amount")}
+        ${button("清空所选", "clear", "quiet")}</div>` : ""}
       <div id="word-list"></div>${page === "picker"
         ? '<div id="picker-actions" class="actions"></div>' : ""}</div>`);
     showRows();
@@ -351,31 +565,94 @@
       if (route === "picker") {
         const entry = book.entries[key];
         const importance = rules.priority(entry, book.finished ? 1 : book.pass);
-        const info = importance === 0 ? "待复习" : importance === 1 ? "上一周目不熟"
-          : label === "mastered" ? "已学会" : "已看过";
+        const info = importance === 0 ? "待复习" : importance === 1 ? "上轮生疏"
+          : label === "mastered" ? "已熟记" : "已读过";
         return `<div class="row between word-row"><label class="control"><input data-word="${escape(key)}"
           type="checkbox" ${list.picked.has(key) ? "checked" : ""}><strong lang="en">${word}</strong></label>
           <small class="${importance === 0 ? "warning" : "muted"}">${info}</small></div>`;
       }
+      if (route === "exam" && list.kind === "review") {
+        return `<div class="row between word-row">${wordLink(key, word)}${starButton(book, key, word)}</div>`;
+      }
       const action = route === "exam" ? (list.kind === "rank" ? "review" : null)
         : (list.kind === "review" ? "mastered" : "review");
-      const mark = action ? button(label === action ? "已加入" : action === "review" ? "不熟" : "已学会",
+      const mark = action ? button(label === action ? "已收录" : action === "review" ? "生疏" : "已熟记",
         "mark-list", "quiet", key, label === action) : "";
-      return `<div class="row between word-row"><strong lang="en">${word}</strong>${mark}</div>`;
+      return `<div class="row between word-row">${wordLink(key, word)}${mark}</div>`;
     }).join("");
     const pagination = matching.length > pageSize ? `<div class="row between pager">
       ${button("上一页", "page", "", "-1", !list.offset)}
       <span class="small muted">${list.offset + 1}–${Math.min(list.offset + pageSize, matching.length)} / ${matching.length}</span>
       ${button("下一页", "page", "", "1", list.offset + pageSize >= matching.length)}</div>` : "";
     document.getElementById("word-list").innerHTML = rows
-      ? rows + pagination : '<p class="muted">没有符合条件的单词。</p>';
+      ? rows + pagination : '<p class="muted">没有相符的单词。</p>';
     showSelected();
+  }
+
+  /** 词目里的单词：点开进入学习页。word 须已转义。 */
+  function wordLink(key, word) {
+    return `<button type="button" class="word-link" data-action="word" data-value="${escape(key)}"
+      lang="en" aria-label="${word}，查看学习页">${word}</button>`;
+  }
+
+  function openWord(key) {
+    wordReturn = { route, scroll: window.scrollY, list: list && { kind: list.kind, query: list.query,
+      offset: list.offset, picked: new Set(list.picked) } };
+    wordPage(key);
+  }
+
+  function wordPage(key) {
+    stopAudio();
+    const [book, data] = selection();
+    const word = wordEntry(data, key);
+    const forms = vocab.forms[key];
+    const variations = forms ? Object.entries(formLabels).filter(([code]) => forms[code])
+      .map(([code, name]) => name + "  " + forms[code]) : [];
+    const spellings = variations.length ? `<section class="stack"><h3>词形变化</h3>
+      <p class="terms">${escape(variations.join("\n"))}</p></section>` : "";
+    const roots = word[2]?.length ? `<section class="stack"><h3>同根词</h3>
+      <p class="terms">${escape(word[2].join("\n"))}</p></section>` : "";
+    const status = book.entries[key]?.status;
+    const star = status === "review" ? `<div class="row between"><span class="muted small">生词本星标</span>
+      ${starButton(book, key, escape(word[0]))}</div>` : "";
+    setPage("word", `<div class="narrow stack">${title("学习", button("返回", "word-back", "quiet"), labels[state.book])}
+      <section class="card stack word-card" data-mark="${escape(word[0])}"><h2 class="learn-title" lang="en">${escape(word[0])}</h2>
+      <p class="terms">${escape(word[1].join("\n"))}</p>${variantNote(word)}${audio(word[0])}</section>
+      ${spellings || roots ? `<div class="card stack">${spellings}${roots}</div>` : ""}
+      <div class="pair">${button(status === "mastered" ? "✓ 已熟记" : "熟记", "word-mark",
+        status === "mastered" ? "primary" : "", key + "|mastered")}
+        ${button(status === "review" ? "✓ 待复习" : "待复习", "word-mark",
+          status === "review" ? "primary" : "", key + "|review")}</div>${star}</div>`);
+  }
+
+  function closeWord() {
+    stopAudio();
+    const back = wordReturn;
+    wordReturn = null;
+    if (!back) { home(); return; }
+    if (back.route === "live" && live) livePage();
+    else if (back.route === "exam") exam(back.list.kind);
+    else if (back.route === "records") records(back.list.kind);
+    else { home(); return; }
+    if (back.list && list) {
+      Object.assign(list, { query: back.list.query, offset: back.list.offset, picked: back.list.picked });
+      const search = document.getElementById("search");
+      if (search) search.value = back.list.query;
+      showRows();
+    }
+    window.scrollTo(0, back.scroll);
+  }
+
+  function starButton(book, key, word) {
+    const on = rules.starred(book, key);
+    return `<button type="button" class="star${on ? " on" : ""}" data-action="star" data-value="${escape(key)}"
+      aria-pressed="${on}" aria-label="${on ? "去除星标" : "加星标"} ${word}" title="${on ? "去除星标" : "加星标"}">${on ? "★" : "☆"}</button>`;
   }
 
   function showSelected() {
     if (route === "picker") {
       document.getElementById("picker-actions").innerHTML = button(
-        list.picked.size ? "开始复习 · " + list.picked.size + " 个词" : "开始复习",
+        list.picked.size ? "开始复习 · " + list.picked.size + " 词" : "开始复习",
         "start-picked", "primary", "", !list.picked.size);
     }
   }
@@ -387,30 +664,34 @@
       persist();
     }
     const source = kind === "rank" ? data.ranking : rules.needsReview(book.entries, rules.localDay(), true);
-    const option = kind === "review" && (book.exam || source.length)
-      ? button(book.exam ? "继续重点复习" : "开始重点复习", book.exam ? "resume" : "exam-start", "primary", "exam") : "";
-    listPage("exam", kind, source, "考前复习",
-      `${levelButtons()}<div class="pair">${button("考试高频词", "exam", kind === "rank" ? "primary" : "", "rank")}
-        ${button("不会的单词", "exam", kind === "review" ? "primary" : "", "review")}</div>${option}`);
+    let option = kind === "review" && (book.exam || source.length)
+      ? button(book.exam ? "接续生词默写" : "生词默写", book.exam ? "resume" : "exam-start", "primary", "exam") : "";
+    if (kind === "review" && source.length) {
+      const stars = source.filter(key => rules.starred(book, key)).length;
+      option += `${button("实时测试", "live-start")}<p class="muted small">从生词本随机抽词，每轮 ${Math.min(liveSize, source.length)} 词，可无限循环；不影响复习进度。${stars ? "　已加星 " + stars + " 词" : ""}</p>`;
+    }
+    listPage("exam", kind, source, "临考",
+      `${levelButtons()}<div class="pair segment">${button("真题高频", "exam", kind === "rank" ? "chosen" : "", "rank")}
+        ${button("生词本", "exam", kind === "review" ? "chosen" : "", "review")}</div>${option}`);
   }
 
   function records(kind) {
     const [book] = selection();
     const words = kind === "review" ? rules.needsReview(book.entries, rules.localDay(), true)
       : Object.keys(book.entries).filter(key => book.entries[key].status === "mastered").sort();
-    listPage("records", kind, words, kind === "review" ? "待复习" : "已学会");
+    listPage("records", kind, words, kind === "review" ? "待复习" : "已熟记");
   }
 
   function picker(kind) {
     const [book] = selection();
     const words = kind === "due" ? rules.needsReview(book.entries, rules.localDay(), false)
       : rules.oldWords(book.entries, book.finished ? 1 : book.pass);
-    listPage("picker", kind, words, names[kind], '<p class="muted small">勾选单词，或按列表顺序选取指定数量。</p>');
+    listPage("picker", kind, words, names[kind], '<p class="muted small">逐个勾选，或按列表顺序取若干词。</p>');
   }
 
   function askMode(callback) {
-    openDialog("选择默写方式", `<div class="pair">${button("看中文默写", "dialog-cn", "primary")}
-      ${button("听音默写", "dialog-listen")}</div>`, action => {
+    openDialog("如何默写", `<div class="pair">${button("依义默写", "dialog-cn", "primary")}
+      ${button("闻声默写", "dialog-listen")}</div>`, action => {
       dialog.close();
       callback(action === "dialog-cn" ? "chinese" : "listen");
     });
@@ -431,7 +712,7 @@
   function quantity(heading, max, current, callback) {
     openDialog(heading, `<input id="quantity" type="number" inputmode="numeric" min="1" max="${max}"
       aria-label="词数" value="${current}" placeholder="1–${max}">
-      ${button("确定", "dialog-submit", "primary") }`, () => {
+      ${button("就这样", "dialog-submit", "primary") }`, () => {
       const field = dialog.querySelector("input");
       const count = Number(field.value);
       if (!Number.isInteger(count) || count < 1 || count > max) {
@@ -446,7 +727,7 @@
   }
 
   function confirmAction(heading, description, action) {
-    openDialog(heading, `<p>${escape(description)}</p>${button("确认", "dialog-confirm", "primary")}`,
+    openDialog(heading, `<p>${escape(description)}</p>${button("确定", "dialog-confirm", "primary")}`,
       () => { dialog.close(); action(); });
   }
 
@@ -471,10 +752,10 @@
     const page = slot === "exam" ? "exam-session" : "daily-session";
     if (rules.complete(active)) {
       if (rules.reconcile(book, data.core)) persist();
-      setPage(page, `<div class="narrow stack">${title("本组已完成")}
-        <section class="card hero stack"><p>${names[active.kind]}</p>
-        <h2>${active.correct} / ${active.words.length}</h2><p class="muted">拼写正确</p></section>
-        <div class="actions">${button("完成", "leave", "primary")}</div></div>`);
+      setPage(page, `<div class="narrow stack">${title("本组圆满")}
+        <section class="card hero stack" data-mark="fin."><p class="tag">${names[active.kind]}</p>
+        <h2>${active.correct} / ${active.words.length}</h2><p class="muted">拼写无误</p></section>
+        <div class="actions">${button("收卷", "leave", "primary")}</div></div>`);
       return;
     }
     const key = active.words[active.index];
@@ -491,8 +772,8 @@
           home();
           return;
         }
-        setPage(page, `<div class="narrow stack">${title("接着默写这一组", button("稍后继续", "leave", "quiet"))}
-          <p>已经学过 ${active.index} 个词。</p>${button("选择默写方式", "learn-test", "primary", active.index)}</div>`);
+        setPage(page, `<div class="narrow stack">${title("默写这一组", button("稍后再续", "leave", "quiet"))}
+          <p>已读 ${active.index} 词，来默写吧。</p>${button("开始默写", "learn-test", "primary", active.index)}</div>`);
         return;
       }
       if (!viewed) {
@@ -503,8 +784,8 @@
     } else {
       content = active.revealed ? answerCard(active, word) : questionCard(active, word);
     }
-    const mode = active.learning ? "先学" : active.mode === "listen" ? "听音默写" : "看中文默写";
-    setPage(page, `<div class="narrow stack">${title(names[active.kind], button("稍后继续", "leave", "quiet"),
+    const mode = active.learning ? "研读" : active.mode === "listen" ? "闻声默写" : "依义默写";
+    setPage(page, `<div class="narrow stack">${title(names[active.kind], button("稍后再续", "leave", "quiet"),
       mode + "　·　" + (active.index + 1) + " / " + active.words.length)}${content}</div>`);
   }
 
@@ -512,21 +793,21 @@
     const forms = vocab.forms[key];
     const variations = forms ? Object.entries(formLabels).filter(([code]) => forms[code])
       .map(([code, name]) => name + "  " + forms[code]) : [];
-    const spellings = variations.length ? `<section class="stack"><h3>语法变形</h3>
+    const spellings = variations.length ? `<section class="stack"><h3>词形变化</h3>
       <p class="terms">${escape(variations.join("\n"))}</p></section>` : "";
     const roots = word[2].length ? `<section class="stack"><h3>同根词</h3>
       <p class="terms">${escape(word[2].join("\n"))}</p></section>` : "";
     const status = entry?.status;
     const last = active.index + 1 === active.words.length;
-    return `<section class="card hero stack"><h2 class="learn-title" lang="en">${escape(word[0])}</h2>
-      <p class="terms muted">${escape(word[1].join("\n"))}</p>${variantNote(word)}${audio(word[0], true)}</section>
+    return `<section class="card stack word-card" data-mark="${escape(word[0])}"><h2 class="learn-title" lang="en">${escape(word[0])}</h2>
+      <p class="terms">${escape(word[1].join("\n"))}</p>${variantNote(word)}${audio(word[0])}</section>
       ${spellings || roots ? `<div class="card stack">${spellings}${roots}</div>` : ""}
-      <div class="pair">${button(status === "mastered" ? "✓ 已学会" : "已学会", "learn-mark",
+      <div class="pair">${button(status === "mastered" ? "✓ 已熟记" : "熟记", "learn-mark",
         status === "mastered" ? "primary" : "", "mastered")}
-        ${button(status === "review" ? "✓ 待复习" : "加入复习", "learn-mark",
+        ${button(status === "review" ? "✓ 待复习" : "待复习", "learn-mark",
           status === "review" ? "primary" : "", "review")}</div>
-      <div class="actions">${last ? button("选择默写方式", "learn-test", "primary", active.words.length)
-        : button("下一个单词", "learn-next", "primary")}</div>`;
+      <div class="actions">${last ? button("开始默写", "learn-test", "primary", active.words.length)
+        : button("下一词", "learn-next", "primary")}</div>`;
   }
 
   function clue(word) {
@@ -544,38 +825,99 @@
 
   function questionCard(active, word) {
     const listening = active.mode === "listen";
-    const instruction = listening ? "听发音写出英文" : "根据释义写出英文";
+    const instruction = listening ? "闻其声，书其形" : "观其义，书其形";
     const meaning = `<p id="clue" class="terms" ${listening && !active.hint ? "hidden" : ""}>
       ${escape(clue(word))}</p>`;
     return `<section class="card stack"><h2>${instruction}</h2>${listening
-      ? audio(word[0]) + button("中文提示", "hint", "quiet") : ""}${meaning}</section>
-      <input id="spelling" aria-label="输入英文拼写" placeholder="输入英文拼写" value="${escape(active.input)}"
+      ? audio(word[0]) + button("释义提示", "hint", "quiet") : ""}${meaning}</section>
+      <input id="spelling" lang="en" aria-label="输入英文拼写" placeholder="在此拼写" value="${escape(active.input)}"
         autocomplete="off" spellcheck="false" autocapitalize="none" enterkeyhint="done">
-      <div class="pair">${button("跳过并看答案", "skip")}${button("提交", "submit", "primary",
+      <div class="pair">${button("揭晓答案", "skip")}${button("核对", "submit", "primary",
         "", !rules.normalize(active.input))}</div>`;
   }
 
   function answerCard(active, word) {
     const correct = !active.skipped && rules.answersMatch(active.input, word[0], word[3]);
     return `<section class="card stack ${correct ? "success" : "retry"}">
-      <p class="small ${correct ? "" : "warning"}">${correct ? "拼写正确" : active.skipped ? "已跳过" : "再记一次"}</p>
+      <p class="verdict ${correct ? "" : "warning"}">${correct ? "拼写无误" : active.skipped ? "答案在此" : "差之毫厘"}</p>
       <h2 class="learn-title" lang="en">${escape(word[0])}</h2>
       ${variantNote(word)}
-      ${!correct && !active.skipped ? `<p class="warning">你的拼写　${escape(active.input)}</p>` : ""}
+      ${!correct && !active.skipped ? `<p class="warning">你写的是　<span lang="en">${escape(active.input)}</span></p>` : ""}
       <p class="terms">${escape(word[1].join("\n"))}</p>${audio(word[0])}</section>
-      <p class="muted small">给这个词标记掌握情况</p>
-      <div class="pair">${button("已学会", "score", correct ? "primary" : "", "mastered")}
-        ${button("加入复习", "score", correct ? "" : "primary", "review")}</div>`;
+      <p class="muted small">这个词，记住了吗？</p>
+      <div class="pair">${button("熟记", "score", correct ? "primary" : "", "mastered")}
+        ${button("待复习", "score", correct ? "" : "primary", "review")}</div>`;
   }
 
   function reveal(skip) {
     const slot = currentSlot();
-    const active = selection()[0][slot];
+    const active = route === "live" ? live : selection()[0][slot];
     if (!active || active.revealed || (!skip && !rules.normalize(active.input))) return;
     active.revealed = true;
     active.skipped = skip;
+    if (route === "live") { livePage(); return; }
     persist();
     sessionPage(slot);
+  }
+
+  function livePool() {
+    return rules.needsReview(selection()[0].entries, rules.localDay(), true);
+  }
+
+  function liveRound() {
+    const pool = livePool();
+    if (!pool.length) { live = null; exam("review"); return; }
+    const round = rules.liveRound(pool, live.deck, liveSize);
+    Object.assign(live, { words: round.words, deck: round.deck, round: live.round + 1, index: 0,
+      results: [], input: "", revealed: false, skipped: false, hint: false });
+    livePage();
+  }
+
+  function startLive(mode) {
+    live = { mode, deck: [], round: 0 };
+    liveRound();
+  }
+
+  function livePage() {
+    stopAudio();
+    const [book, data] = selection();
+    const header = action => title("实时测试", button("结束测试", "live-exit", "quiet"), action);
+    if (live.index >= live.words.length) {
+      const right = live.results.filter(Boolean).length;
+      const missed = live.words.filter((key, i) => !live.results[i] && !rules.starred(book, key));
+      const rows = live.words.map((key, i) => {
+        const word = wordEntry(data, key);
+        return `<div class="row between word-row"><div class="live-word">${wordLink(key, escape(word[0]))}
+          <small class="${live.results[i] ? "muted" : "warning"}">${live.results[i] ? "会" : "不会"}　${escape(word[1][0] ?? "")}</small></div>
+          ${starButton(book, key, escape(word[0]))}</div>`;
+      }).join("");
+      setPage("live", `<div class="narrow stack">${header("第 " + live.round + " 轮完成")}
+        <section class="card hero stack" data-mark="live"><p class="tag">实时测试</p>
+        <h2>${right} / ${live.words.length}</h2><p class="muted">拼写无误</p></section>
+        <p class="muted small">给不会的词加星，星标会显示在生词本里，可随时去除。</p>
+        <div>${rows}</div>
+        ${missed.length ? button("不会的词全部加星 · " + missed.length, "live-star-missed") : ""}
+        <div class="actions">${button("再来一轮", "live-next-round", "primary")}</div></div>`);
+      return;
+    }
+    const word = wordEntry(data, live.words[live.index]);
+    let content;
+    if (live.revealed) {
+      const correct = !live.skipped && rules.answersMatch(live.input, word[0], word[3]);
+      const last = live.index + 1 === live.words.length;
+      content = `<section class="card stack ${correct ? "success" : "retry"}">
+        <p class="verdict ${correct ? "" : "warning"}">${correct ? "拼写无误" : live.skipped ? "答案在此" : "差之毫厘"}</p>
+        <h2 class="learn-title" lang="en">${escape(word[0])}</h2>${variantNote(word)}
+        ${!correct && !live.skipped ? `<p class="warning">你写的是　<span lang="en">${escape(live.input)}</span></p>` : ""}
+        <p class="terms">${escape(word[1].join("\n"))}</p>${audio(word[0])}</section>
+        <div class="actions">${button(last ? "查看本轮结果" : "下一词", "live-next", "primary")}</div>`;
+    } else {
+      content = questionCard(live, word);
+    }
+    const mode = live.mode === "listen" ? "闻声默写" : "依义默写";
+    setPage("live", `<div class="narrow stack">${header(mode + "　·　第 " + live.round + " 轮　·　"
+      + (live.index + 1) + " / " + live.words.length)}${content}</div>`);
+    if (!live.revealed) document.getElementById("spelling")?.focus();
   }
 
   function leave() {
@@ -596,11 +938,24 @@
     if (!control || !state) return;
     const [book, data] = selection();
     const slot = currentSlot();
-    const active = route.endsWith("-session") ? book[slot] : null;
+    const active = route === "live" ? live : route.endsWith("-session") ? book[slot] : null;
     const { action, value } = control.dataset;
     const day = rules.localDay();
     switch (action) {
       case "home": home(); break;
+      case "settings": settings(); break;
+      case "settings-group": settingsGroup(value); break;
+      case "look": {
+        const split = value.indexOf(":");
+        window.CijianLook.set(value.slice(0, split), value.slice(split + 1));
+        settingsGroup(currentGroup());
+        break;
+      }
+      case "photo-pick": document.getElementById("photo-file")?.click(); break;
+      case "photo-clear":
+        confirmAction("恢复默认背景？", "照片会从本机删除，背景回到暖纸水印。",
+          () => { window.CijianLook.clearPhoto(); settingsGroup("look"); });
+        break;
       case "dictionary-page": showDictionary(Number(value)); break;
       case "dictionary-history": showDictionaryHistory(); break;
       case "dictionary-repeat": searchDictionary(value); break;
@@ -615,7 +970,7 @@
         else home();
         break;
       case "quota":
-        quantity("每日新词量", 200, state.quota, count => { state.quota = count; persist(); home(); });
+        quantity("每日词量", 200, state.quota, count => { state.quota = count; persist(); home(); });
         break;
       case "new":
         start("new", rules.newWords(data.core, book.entries, day, state.quota, state.learnOnWeekends), "chinese");
@@ -625,12 +980,12 @@
       case "records": records(value); break;
       case "resume": sessionPage(value); break;
       case "end-session":
-        confirmAction("结束这组练习？", "已学习的词和已提交的结果会保留。",
+        confirmAction("收起本组？", "已读的词和已核对的结果都会保留。",
           () => { book.daily = null; persist(); home(); });
         break;
       case "end-pass":
-        confirmAction("结束第 " + book.pass + " 周目？", book.pass === 5 ? "之后可以继续日常复习和考前复习。"
-          : "将进入第 " + (book.pass + 1) + " 周目。", () => {
+        confirmAction("完结第" + numerals[book.pass] + "轮？", book.pass === 5 ? "之后仍可日常复习与临考。"
+          : "将开启第" + numerals[book.pass + 1] + "轮。", () => {
             rules.endPass(book);
             persist();
             home();
@@ -655,7 +1010,7 @@
       case "clear": list.picked.clear(); showRows(); break;
       case "amount": {
         const candidates = list.source.filter(key => key.includes(list.query));
-        if (candidates.length) quantity("按列表顺序选词", candidates.length, "", count => {
+        if (candidates.length) quantity("按序择词", candidates.length, "", count => {
           list.picked = new Set(candidates.slice(0, count));
           showRows();
         });
@@ -667,11 +1022,54 @@
         if (words.length) askMode(mode => start(kind, words, mode));
         break;
       }
+      case "star": {
+        const on = !rules.starred(book, value);
+        rules.setStar(book, value, on);
+        persist();
+        control.outerHTML = starButton(book, value, escape(wordEntry(data, value)[0]));
+        if (route === "live") {
+          const missed = live.words.filter((key, i) => !live.results[i] && !rules.starred(book, key)).length;
+          const bulk = app.querySelector('[data-action="live-star-missed"]');
+          if (bulk) {
+            bulk.textContent = "不会的词全部加星 · " + missed;
+            bulk.hidden = !missed;
+          }
+        }
+        break;
+      }
+      case "word": openWord(value); break;
+      case "word-back": closeWord(); break;
+      case "word-mark": {
+        const split = value.lastIndexOf("|");
+        rules.mark(book, value.slice(0, split), value.slice(split + 1), day);
+        persist();
+        const y = window.scrollY;
+        wordPage(value.slice(0, split));
+        window.scrollTo(0, y);
+        break;
+      }
+      case "live-start": askMode(startLive); break;
+      case "live-next": {
+        const word = wordEntry(data, live.words[live.index]);
+        live.results.push(!live.skipped && rules.answersMatch(live.input, word[0], word[3]));
+        Object.assign(live, { index: live.index + 1, input: "", revealed: false, skipped: false, hint: false });
+        livePage();
+        break;
+      }
+      case "live-star-missed":
+        live.words.forEach((key, i) => { if (!live.results[i]) rules.setStar(book, key, true); });
+        persist();
+        app.querySelectorAll('[data-action="star"]').forEach(star =>
+          { star.outerHTML = starButton(book, star.dataset.value, escape(wordEntry(data, star.dataset.value)[0])); });
+        control.hidden = true;
+        break;
+      case "live-next-round": liveRound(); break;
+      case "live-exit": stopAudio(); live = null; exam("review"); break;
       case "speak": play(value, control); break;
       case "hint":
         active.hint = !active.hint;
         document.getElementById("clue").hidden = !active.hint;
-        persist();
+        if (route !== "live") persist();
         break;
       case "learn-mark":
         rules.mark(book, active.words[active.index], value, day);
@@ -715,7 +1113,15 @@
     searchDictionary(query);
   });
   app.addEventListener("change", event => {
-    if (event.target.id === "weekends") {
+    if (event.target.id?.startsWith("look-")) {
+      window.CijianLook.set(event.target.id.slice(5), event.target.checked ? "on" : "off");
+    } else if (event.target.id === "photo-file") {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      showNotice("");
+      window.CijianLook.setPhoto(file).then(() => { if (route === "settings-look") settingsGroup("look"); },
+        error => showNotice(error.message || "照片没能设置成功。"));
+    } else if (event.target.id === "weekends") {
       state.learnOnWeekends = event.target.checked;
       persist();
       home();
@@ -734,7 +1140,7 @@
       list.offset = 0;
       showRows();
     } else if (event.target.id === "spelling") {
-      selection()[0][currentSlot()].input = event.target.value;
+      (route === "live" ? live : selection()[0][currentSlot()]).input = event.target.value;
       app.querySelector('[data-action="submit"]').disabled = !rules.normalize(event.target.value);
     }
   });

@@ -29,6 +29,7 @@ public final class StudyRulesTest {
         dailySchedule();
         reviewSelection();
         spellingAndResume();
+        liveRounds();
         packagedBooks(args[0]);
         System.out.println("Daily schedule, review selection, spelling, resume and bundled data passed.");
     }
@@ -190,6 +191,37 @@ public final class StudyRulesTest {
             words.add(String.format(Locale.ROOT, "word%03d", i));
         }
         return words;
+    }
+
+    private static void liveRounds() {
+        List<String> pool = words(25);
+        List<String> deck = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        for (int round = 0; round < 2; round++) {
+            List<String> dealt = LiveTest.deal(pool, deck, LiveTest.ROUND_SIZE);
+            check(dealt.size() == 10 && new HashSet<>(dealt).size() == 10, "Live round has ten distinct words");
+            seen.addAll(dealt);
+        }
+        List<String> third = LiveTest.deal(pool, deck, LiveTest.ROUND_SIZE);
+        check(new HashSet<>(third).size() == 10, "Live round refills the deck without repeats");
+        for (String word : third) {
+            seen.add(word);
+        }
+        check(seen.size() == 25, "Every unfamiliar word appears before the deck is reshuffled");
+        List<String> small = LiveTest.deal(words(3), new ArrayList<>(), LiveTest.ROUND_SIZE);
+        check(small.size() == 3, "Small notebook deals every word once");
+        List<String> shrunk = new ArrayList<>(pool.subList(0, 5));
+        check(shrunk.containsAll(LiveTest.deal(shrunk, deck, LiveTest.ROUND_SIZE)),
+                "Words removed from the notebook leave the live deck");
+
+        LiveTest test = new LiveTest(WordBook.CET6, Practice.Mode.LISTEN);
+        check(test.nextRound(pool) && test.round == 1, "Live test starts its first round");
+        test.session.revealed = true;
+        test.answer(false);
+        LiveTest restored = LiveTest.decode(test.encode());
+        check(restored.round == 1 && restored.results.size() == 1 && restored.session.index == 1
+                && restored.mode == Practice.Mode.LISTEN, "Live test state survives rotation");
+        check(!test.nextRound(new ArrayList<>()), "Empty notebook ends the live test");
     }
 
     private static void check(boolean condition, String description) {

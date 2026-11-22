@@ -17,7 +17,7 @@ final class StudyPlanner {
     }
 
     enum Kind {
-        NEW("学习新词"), DUE("到期复习"), WEEKEND("周末复习"), PASS("周目复习"), EXAM("考前重点复习");
+        NEW("新词🔥"), DUE("到期复习"), WEEKEND("周末复习"), PASS("本轮复习"), EXAM("临考生词");
 
         final String label;
 

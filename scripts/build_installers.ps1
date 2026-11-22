@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory)][string]$Compiler,
     [Parameter(Mandatory)][string]$WebViewBootstrapper,
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.1.3'
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '0.1.6'
 )
 
 $ErrorActionPreference = 'Stop'

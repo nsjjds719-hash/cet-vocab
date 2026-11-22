@@ -5,6 +5,5 @@
 *.iml
 /windows/bin/
 /windows/obj/
-xcuserdata/
 __pycache__/
-
+/.claude/

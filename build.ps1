@@ -54,6 +54,15 @@ try {
     foreach ($asset in @('catalog.json', 'dictionary.json', 'ECDICT-LICENSE.txt')) {
         Copy-Item -LiteralPath (Join-Path $root "data\study\$asset") -Destination $assets
     }
+    foreach ($asset in @('PlayfairDisplay-Italic.ttf', 'OFL-Playfair.txt')) {
+        Copy-Item -LiteralPath (Join-Path $root "shared\ui\$asset") -Destination $assets
+    }
+    # Optional numeral fonts (digit-only subsets and OFL texts), see shared/ui/fonts/README.txt
+    $fonts = Join-Path $assets 'fonts'
+    New-Item -ItemType Directory -Path $fonts -Force | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $root 'shared\ui\fonts') -File |
+        Where-Object { $_.Extension -in '.ttf', '.txt' } |
+        ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $fonts }
     Invoke-BuildTool $aapt @('compile', '--dir', (Join-Path $main 'res'), '-o', $compiled)
     Invoke-BuildTool $aapt @('link', '-o', $resources, '-I', $androidJar,
         '--manifest', $manifest, '--java', (Join-Path $work 'generated'),

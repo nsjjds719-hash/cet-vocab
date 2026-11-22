@@ -58,16 +58,12 @@ if __name__ == "__main__":
         files = ROOT / "build"
         android = files / f"cijian-{version}.apk"
         desktop = files / f"Cijian-Windows-x64-{version}.zip"
-        ios = files / f"Cijian-iOS-Xcode-{version}.zip"
         windows_assets = f"cijian-windows-x64-{version}/web/"
-        ios_assets = "Cijian-iOS/web/"
         js_catalog = b"window.CijianVocabulary = "
         verify_package(android, "assets/catalog.json", data)
         verify_package(desktop, windows_assets + "vocabulary.js", data, js_catalog)
-        verify_package(ios, ios_assets + "vocabulary.js", data, js_catalog)
         dictionary = (ROOT / "data" / "study" / "dictionary.json").read_bytes().strip()
         js_dictionary = b"window.CijianDictionaryData = "
         verify_package(android, "assets/dictionary.json", dictionary)
         verify_package(desktop, windows_assets + "dictionary-data.js", dictionary, js_dictionary)
-        verify_package(ios, ios_assets + "dictionary-data.js", dictionary, js_dictionary)
     print("SHA-256:", hashlib.sha256(data).hexdigest())

@@ -5,8 +5,8 @@ import java.util.Locale;
 
 final class Practice {
     enum Mode {
-        CHINESE("看中文默写"),
-        LISTEN("听音默写");
+        CHINESE("依义默写"),
+        LISTEN("闻声默写");
 
         final String label;
 

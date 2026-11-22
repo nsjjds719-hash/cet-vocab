@@ -1,15 +1,34 @@
 词间开发进度
 项目目录 D:\ENGLISH
-当前版本 0.1.3，Android 8.0 及以上
-本地试用包 D:\ENGLISH\build\cijian-0.1.3.apk
+当前版本 0.1.6，Android 8.0 及以上
+本地试用包 D:\ENGLISH\build\cijian-0.1.6.apk
 
-Windows 和 iOS
+Windows
 
-- Windows x64 便携版 D:\ENGLISH\build\Cijian-Windows-x64-0.1.3.zip。完整解压后打开 Cijian.exe，使用 Microsoft Edge WebView2 Runtime。
-- iOS 工程包 D:\ENGLISH\build\Cijian-iOS-Xcode-0.1.3.zip。工程最低 iOS 16，包含 Swift、系统语音和离线资源，可在 Mac 上用 Xcode 打开。尚未完成 iOS 原生编译、签名或真机验证。
-- Android、Windows、iOS 工程随包提供同一份标准化词库。学习进度各自保存在本机。
-- Windows 实机已打开打包后的程序，核对周末新词入口和考前榜显示。共享界面通过了桌面及窄屏的先学后默写、暂停续做、高频词加入复习和自选复习测试。已检查 iOS 工程的资源归属和压缩包完整性。
-- 运行 python scripts\build_ports.py windows 或 python scripts\build_ports.py ios 可重建对应产物。Windows 构建用 .NET 10 SDK。iOS 工程包用 Pillow 生成应用图标。
+- Windows x64 便携版 D:\ENGLISH\build\Cijian-Windows-x64-0.1.6.zip。完整解压后打开 Cijian.exe，使用 Microsoft Edge WebView2 Runtime。
+- Android、Windows 随包提供同一份标准化词库。学习进度各自保存在本机。
+- Windows 实机已打开打包后的程序，核对周末新词入口和考前榜显示。共享界面通过了桌面及窄屏的先学后默写、暂停续做、高频词加入复习和自选复习测试。
+- 运行 python scripts\build_ports.py windows 可重建 Windows 产物，构建用 .NET 10 SDK。
+
+- 2026-11-21 起不再做 iOS 端，已删除 ios 工程及相关构建代码。
+
+界面风格（2026-11-21 改版）
+
+- 暖米色纸面配淡水印：背景有三团柔光，右下角压一枚大号宋体「词」。学习卡和词条卡以单词本身作斜体水印。
+- 卡片和按钮采用液态玻璃样式：半透明磨砂、白色描边、顶部高光，按下时缩小，松手回弹。Windows 端的高光会跟随鼠标，换页时各块依次浮现。
+- 字体：英文单词用衬线斜体，中文标题用宋体类衬线字，字距加宽。主色为陶土红，词书切换改为墨色分段选择器。
+- 首页右上角的朱印「考」是临考入口。
+- 首页统计卡去掉「第X轮」字样，改为金色月桂花环徽章，圈内是轮次数字（五轮圆满时显示 5，悬停或读屏为「五轮圆满」）。「首轮已读」「本轮已温习」的数字改用艺术字 Playfair Display Italic（SIL OFL 1.1，完整未改动的字体文件 shared\ui\PlayfairDisplay-Italic.ttf，许可证 OFL-Playfair.txt）。Windows 用 @font-face 加载，Android 由 build.ps1 把字体复制进 assets，再用 Typeface.createFromAsset 读取，徽章由 StudyView.LaurelBadge 绘制。浏览器手机宽度下已核对第一轮和五轮圆满两种状态；Android 已编译打包，尚未在真机上查看。
+- 文案统一改为更雅致的说法：已学会改称熟记，周目改称轮（第一轮至第五轮）。默写方式分为依义默写和闻声默写，发音按钮为「聆听」，考前复习页称「临考」，内分「真题高频」和「生词本」。产品说明仍沿用原称呼，两者指同一功能。
+- 2026-11-21 再次调整：界面上所有「温习」改回「复习」；首页「今日功课」改为「今日」；「新词研习」改为「新词🔥」，日期行「周末研习」「研习日」改为「周末🔥」「🔥」。🔥 会像火苗一样跳动：Windows 在 setPage 后把文字里的 🔥 包成 .flame，安卓由 StudyView.flames 给 TextView 和按钮加 FlameSpan，系统关闭动画时静止。已在浏览器手机宽度下看过首页、新词页标题和「接续新词🔥」按钮；安卓已编译打包，尚未在真机上查看。
+- 2026-11-21 查词：查词框提示改为「中英互查词典」；「查阅」按钮改为原地奔跑的 🏃（读屏仍为「查阅」）；结果数「寻得 N 条」改为「🎯 N 条」，🎯 弹大再回落。动态表情统一由 Windows 的 flames()（lively 映射）和安卓 StudyView.Lively 关键帧驱动，加新表情只需各加一条。浏览器手机宽度下已看过查阅按钮和查词结果页；安卓已编译打包，尚未在真机上查看。
+- 2026-11-21 设置页：首页右上角朱印「考」左边新增设置钮（滑杆图形），设置页含三项。主题可选浅色、深色、跟随系统；深色为墨夜纸面配烟色玻璃，分段选择的选中项改为米色。按键颜色有陶土（默认）、黛蓝、松青、胭脂、藤紫五种，主按键、开关、进度条、朱印、小标题和对话框按钮都随之变化。背景照片可从相册选择，自动缩到长边 1600 像素后存在本机，背景铺满并压一层主题色薄纱，卡片加厚磨砂；「恢复默认」删除照片、回到暖纸水印。外观只存本机，不进学习记录：Windows 存在 WebView 的 localStorage（cijian.look.v1、cijian.photo.v1，由 shared\ui\look.js 读写），Android 存在 SharedPreferences「look」和应用私有目录的 background.jpg（Look.java）。Android 的颜色改由 StudyView.palette() 统一设定，深色另有 AppThemeDark / GlassDialogDark 样式。Windows 已在浏览器手机宽度下核对设置页、深浅色、换色、上传照片和重启后保留，便携版已重新打包；Android 已编译打包并通过回归检查，尚未在真机上查看。
+- 2026-11-21 设置页扩充（0.1.4）：设置首页分为「外观」「首页样式」「动态表情」「阅读与动效」四组，点进去是子页。外观：主题、按键颜色、背景照片，新增背景水印字（词 / 学 / 勤 / 书 / 无）、磨砂浓度（轻 / 中 / 浓），有照片时另有薄纱浓度。首页样式：数字字体 7 选 1（Playfair 默认，另有 Bodoni、Cormorant、Abril、Cinzel、Italiana、Fraunces），轮次徽章 7 选 1（细环、双环印、进度环、朱砂印、月桂默认、玻璃球、铭文环），顶部有实时预览。动态表情：新词（默认 🔥）、查阅按钮（默认 🏃）、查词结果（默认 🎯）各自可选，每处都能选「无」（查阅按钮显示文字「查阅」）；共 13 个表情，各有动画。阅读与动效：字号标准 / 大 / 特大，表情跳动和换页浮现可分别关闭。默认值与改版前一致。选项表在 shared\ui\look.js（options）和 Look.java（Look.Setting）各一份，取值 id 相同；Android 的徽章由 StudyView.PassBadge 绘制，表情动画在 StudyView.Lively。六种新数字字体是只含「/」与 0–9 的子集，内部名称改为 Cijian Numeral …（OFL 要求修改版不用保留名），放在 shared\ui\fonts，附各自 OFL 许可证和 README；由 scripts\extract_numerals.py 生成，build.ps1 把 ttf 复制进 Android assets\fonts，build_shared.py 把 woff2 复制进 web\fonts。同时修好一个旧问题：共享界面的 CSP 没有 font-src，Windows 上 Playfair 其实一直没加载（显示的是 Georgia 斜体），现已加上 font-src。Windows 已在浏览器手机宽度下核对四个子页、各选项效果、字体加载和重启后保留；Android 已编译打包并通过回归检查，尚未在真机上查看。
+- 2026-11-21 修复 0.1.4 安卓启动闪退：MainActivity.paintSystemBars() 在 onCreate 里直接调 getWindow().getInsetsController()，此时窗口装饰层还没建，Android 16（vivo X200s）上空指针闪退。改为先 getDecorView() 再取控制器。已用 USB 调试在 vivo X200s（Android 16）上安装 0.1.4 并启动，进程正常运行、无崩溃日志；设置页各项尚待在手机上逐项查看。
+- 2026-11-21 词目可点开学习页（0.1.5）：临考的真题高频、生词本，首页的已熟记、待复习，以及实时测试每轮结果里的单词，点一下进入学习页。学习页和研读卡一样，有释义、其他写法、聆听、词形变化和同根词，可标熟记或待复习；在生词本里的词还能加星或去星。点「返回」（安卓也可按返回键）回到原列表，筛选词和列表位置保留；从实时测试结果点进去的，返回后这一轮结果还在。复习择词页的单词行仍是勾选用，没有加跳转。Android 由 MainActivity.wordPage / linkRow 实现，学习卡与研读共用 wordCard；Windows 在 shared\ui\app.js 的 wordPage / openWord。Windows 已在浏览器里核对列表跳转、标记后返回和实时测试结果跳转；Android 已编译打包并通过回归检查，本机未连手机，尚未在真机上查看。
+- 2026-11-22 安卓词目改为翻页（0.1.6）：真题高频（1,500 词）以及生词本、已熟记、待复习在安卓上每页 50 词，列表底部有「上一页」「下一页」，中间显示「第 n / 30 页」和词序范围；不到 50 词时不显示翻页条。筛选后回到第 1 页，标记移出最后一词时自动退回上一页；从词目点进学习页再返回，停在原来那一页。Windows 共享界面本来就是每页 50 词，未改。实现在 MainActivity.wordList 与 WordAdapter（page / turn）。已在 vivo X200s（Android 16）上通过 USB 安装 0.1.6，核对了翻页、页码、点词进学习页后返回仍在原页；回归检查通过。
+- Windows 界面改在 shared\ui（styles.css、glass.js、app.js）。Android 改在 StudyView.java、MainActivity.java、ReviewPicker.java 和 res\values\styles.xml。
+- 已在浏览器的手机宽度和桌面宽度下检查首页、学习卡、默写、答题反馈、词典详情、对话框和临考页。Android 新界面已编译打包，但本机没有设备或模拟器，尚未在真机上查看。
 
 已实现
 
@@ -22,6 +41,7 @@ Windows 和 iOS
 - 首页的「周末学新词」开关默认开启。关掉后周六、周日只发放复习任务。周末可以按需选择旧词，待复习词优先，完成后可以继续选词。
 - 四级、六级分别计算周目。第一周目练完自动进入第二周目。第二至第五周目优先展示待复习和上一周目不熟的词，数量由用户自选，每一轮由用户主动结束。已进入后续周目的用户可以通过首页「补学新词」学习扩充的词条。
 - 考前模式随时可打开。四级、六级各列频次榜前 1,500 个英文词。点击不熟会立即加入同一待复习库，并在次日纳入日常到期复习。考前练习和普通练习可以分别暂停续做。
+- 临考页「生词本」下新增「实时测试」：从生词本随机抽词，每轮 10 词（不足 10 词则全抽），按洗牌方式轮流出题，抽完再洗，可无限循环。支持依义默写和闻声默写，只练习不改温习进度。每轮结束列出会与不会，可逐个加星或一键给不会的词全部加星。星标显示在生词本列表里，点星可随时去除。Android 星标存在 settings 表（starred.CET4 / starred.CET6），Windows 存在学习记录的 books.<词书>.starred。Android 已编译并通过回归检查（新增实时测试抽词与状态恢复），尚未在真机上查看；Windows 共享界面已在浏览器手机宽度下走通整轮测试和加星。
 
 构建与验证
 

@@ -154,7 +154,29 @@
     Object.assign(session, { input: "", revealed: false, skipped: false, hint: false });
   }
 
+  function starred(book, word) {
+    return (book.starred ?? []).includes(word);
+  }
+
+  function setStar(book, word, on) {
+    const stars = (book.starred ?? []).filter(key => key !== word);
+    if (on) stars.push(word);
+    book.starred = stars;
+  }
+
+  // 实时测试按"一副洗好的牌"出题：牌抽完再洗，保证各词轮流出现。
+  function liveRound(pool, deck, size) {
+    const available = new Set(pool);
+    let rest = deck.filter(key => available.has(key));
+    const words = rest.splice(0, size);
+    if (words.length < size) {
+      rest = shuffle(pool.filter(key => !words.includes(key)));
+      words.push(...rest.splice(0, size - words.length));
+    }
+    return { words, deck: rest };
+  }
+
   root.CijianRules = { freshState, normalize, answersMatch, localDay, weekend, allowsNew, viewedToday,
     newWords, progress, mark, needsReview, priority, reviewedInPass, oldWords, firstPassCount,
-    reconcile, endPass, createSession, beginTest, complete, finishQuestion };
+    reconcile, endPass, createSession, beginTest, complete, finishQuestion, starred, setStar, liveRound };
 })(globalThis);
